@@ -1,15 +1,25 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
-  <rect width="512" height="512" rx="112" fill="#1a1410"/>
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#2a1b4d"/>
+      <stop offset="1" stop-color="#15121f"/>
+    </linearGradient>
+    <linearGradient id="beer" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#ffd166"/>
+      <stop offset="1" stop-color="#ffb02e"/>
+    </linearGradient>
+  </defs>
+  <rect width="512" height="512" rx="112" fill="url(#bg)"/>
   <g transform="translate(150 96)">
     <!-- handle -->
-    <path d="M196 96h40a52 52 0 0 1 52 52v96a52 52 0 0 1-52 52h-40" fill="none" stroke="#f4a62a" stroke-width="26"/>
+    <path d="M196 96h40a52 52 0 0 1 52 52v96a52 52 0 0 1-52 52h-40" fill="none" stroke="#ff4d8d" stroke-width="26"/>
     <!-- mug body -->
-    <rect x="40" y="80" width="168" height="240" rx="22" fill="#34281d" stroke="#f4a62a" stroke-width="14"/>
+    <rect x="40" y="80" width="168" height="240" rx="22" fill="#2c2650" stroke="#22d3ee" stroke-width="14"/>
     <!-- beer -->
-    <rect x="54" y="150" width="140" height="156" rx="12" fill="#f4a62a"/>
-    <rect x="54" y="150" width="140" height="40" fill="#ffc861"/>
+    <rect x="54" y="150" width="140" height="156" rx="12" fill="url(#beer)"/>
+    <rect x="54" y="150" width="140" height="38" fill="#ffe1a0"/>
     <!-- foam -->
-    <g fill="#f3e9dc">
+    <g fill="#f5f2ff">
       <circle cx="70" cy="78" r="34"/>
       <circle cx="118" cy="60" r="40"/>
       <circle cx="170" cy="78" r="34"/>

@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
-<meta name="theme-color" content="#1a1410" />
+<meta name="theme-color" content="#15121f" />
 <meta name="apple-mobile-web-app-capable" content="yes" />
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
 <meta name="apple-mobile-web-app-title" content="Beer Mile" />
@@ -13,16 +13,22 @@
 <link rel="apple-touch-icon" href="./icon.svg" />
 <style>
   :root{
-    --bg:#1a1410; --bg2:#221a13; --card:#2b2018; --card2:#34281d;
-    --line:#3d2f22; --txt:#f3e9dc; --mut:#b39c84; --mut2:#8a7660;
-    --amber:#f4a62a; --amber2:#ffc861; --hop:#7cb342; --red:#e2603f;
-    --gold:#ffd27a; --shadow:0 6px 22px rgba(0,0,0,.4);
+    --bg:#15121f; --bg2:#1e1a30; --card:#221d38; --card2:#2c2650;
+    --line:#3b3163; --txt:#f5f2ff; --mut:#ada3cf; --mut2:#7f74ab;
+    --amber:#ffb02e; --amber2:#ffd166; --hop:#a3e635; --red:#fb5b3f;
+    --pink:#ff4d8d; --pink2:#ff8ab4; --cyan:#22d3ee; --purple:#b16cff;
+    --gold:#ffd166; --shadow:0 8px 26px rgba(10,6,24,.5);
     --safe-b:env(safe-area-inset-bottom,0px);
   }
   *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
   html,body{margin:0;padding:0}
   body{
-    background:radial-gradient(120% 80% at 50% 0%, #2a2016 0%, var(--bg) 60%);
+    background:
+      radial-gradient(55% 45% at 12% 0%, rgba(177,108,255,.30), transparent 70%),
+      radial-gradient(50% 40% at 92% 4%, rgba(34,211,238,.24), transparent 70%),
+      radial-gradient(70% 55% at 50% 102%, rgba(255,77,141,.20), transparent 72%),
+      var(--bg);
+    background-attachment:fixed;
     color:var(--txt);
     font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
     min-height:100vh; line-height:1.4; padding-bottom:calc(78px + var(--safe-b));
@@ -34,9 +40,15 @@
   /* Header */
   header{
     position:sticky;top:0;z-index:30;
-    background:linear-gradient(180deg,rgba(26,20,16,.97),rgba(26,20,16,.86));
-    backdrop-filter:blur(8px);border-bottom:1px solid var(--line);
+    background:linear-gradient(180deg,rgba(21,18,31,.96),rgba(21,18,31,.80));
+    backdrop-filter:blur(10px);
+    border-bottom:2px solid transparent;
+    border-image:linear-gradient(90deg,#ff4d8d,#ffb02e,#a3e635,#22d3ee,#b16cff) 1;
     padding:calc(env(safe-area-inset-top,0px) + 10px) 0 10px;
+  }
+  .title b{
+    background:linear-gradient(92deg,#ffd166,#ff4d8d 45%,#22d3ee);
+    -webkit-background-clip:text;background-clip:text;color:transparent;
   }
   .head-row{display:flex;align-items:center;gap:10px}
   .logo{font-size:26px;filter:drop-shadow(0 2px 3px rgba(0,0,0,.5))}
@@ -58,17 +70,22 @@
   /* Bottom nav */
   nav.tabs{
     position:fixed;left:0;right:0;bottom:0;z-index:40;
-    background:linear-gradient(180deg,rgba(34,26,19,.92),rgba(20,15,11,.99));
-    backdrop-filter:blur(10px);border-top:1px solid var(--line);
+    background:linear-gradient(180deg,rgba(34,28,56,.90),rgba(17,14,28,.99));
+    backdrop-filter:blur(12px);border-top:1px solid var(--line);
     display:flex;padding:6px 4px calc(6px + var(--safe-b));
   }
   nav.tabs button{
     flex:1;background:none;border:0;color:var(--mut2);font-size:10.5px;font-weight:700;
-    display:flex;flex-direction:column;align-items:center;gap:3px;padding:5px 2px;cursor:pointer;letter-spacing:.2px
+    display:flex;flex-direction:column;align-items:center;gap:3px;padding:5px 2px;cursor:pointer;letter-spacing:.2px;transition:color .15s
   }
   nav.tabs button .ic{font-size:21px;line-height:1;transition:transform .15s}
-  nav.tabs button.active{color:var(--amber2)}
-  nav.tabs button.active .ic{transform:translateY(-2px) scale(1.12)}
+  nav.tabs button.active .ic{transform:translateY(-2px) scale(1.16)}
+  /* each tab gets its own playful colour when active */
+  nav.tabs button:nth-child(1).active{color:#ffd166}
+  nav.tabs button:nth-child(2).active{color:#22d3ee}
+  nav.tabs button:nth-child(3).active{color:#ff7eb0}
+  nav.tabs button:nth-child(4).active{color:#c084fc}
+  nav.tabs button:nth-child(5).active{color:#a3e635}
 
   /* Cards */
   .card{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:14px;margin-bottom:12px;box-shadow:var(--shadow)}
@@ -78,11 +95,12 @@
 
   .pill{display:inline-flex;align-items:center;gap:5px;background:var(--card2);border:1px solid var(--line);border-radius:999px;padding:3px 10px;font-size:12px;font-weight:700;color:var(--mut)}
   .pill.hop{color:var(--hop);border-color:#3f5226}
-  .pill.amber{color:var(--amber2);border-color:#5a4216}
+  .pill.amber{color:var(--amber2);border-color:rgba(255,176,46,.38)}
 
   .btn{
     appearance:none;border:0;border-radius:12px;padding:12px 16px;font-size:15px;font-weight:800;cursor:pointer;
-    background:linear-gradient(180deg,var(--amber2),var(--amber));color:#3a2400;box-shadow:0 4px 14px rgba(244,166,42,.28);width:100%
+    background:linear-gradient(135deg,#ff4d8d,#ff8a3d 55%,#ffd166);color:#3a0f1f;
+    box-shadow:0 6px 18px rgba(255,77,141,.34);width:100%
   }
   .btn:active{transform:translateY(1px)}
   .btn.sec{background:var(--card2);color:var(--txt);border:1px solid var(--line);box-shadow:none}
@@ -119,7 +137,7 @@
   .v-actions{display:flex;gap:7px;margin-top:9px;flex-wrap:wrap}
   .v-actions a,.v-actions button{font-size:12.5px;text-decoration:none}
   .progress{height:9px;background:var(--bg2);border-radius:999px;overflow:hidden;border:1px solid var(--line)}
-  .progress i{display:block;height:100%;background:linear-gradient(90deg,var(--hop),#a6d96a);width:0;transition:width .4s}
+  .progress i{display:block;height:100%;background:linear-gradient(90deg,#22d3ee,#a3e635);width:0;transition:width .4s}
 
   /* logs */
   .log{display:flex;gap:10px;align-items:center;padding:10px 0;border-bottom:1px solid var(--line)}
@@ -142,7 +160,7 @@
   .lead .rk{width:22px;font-weight:900;color:var(--mut)}
   .lead .ava{width:30px;height:30px;border-radius:50%;display:grid;place-items:center;font-size:14px;flex:none}
   .lead .bar{flex:1;height:8px;background:var(--bg2);border-radius:999px;overflow:hidden}
-  .lead .bar i{display:block;height:100%;background:linear-gradient(90deg,var(--amber),var(--amber2))}
+  .lead .bar i{display:block;height:100%;background:linear-gradient(90deg,#ff4d8d,#ffd166)}
   .lead .val{font-weight:800;font-size:13px;min-width:64px;text-align:right;color:var(--txt)}
 
   /* games */
@@ -161,7 +179,7 @@
     display:flex;align-items:center;justify-content:center;text-align:center;padding:6px;
     font-size:11.5px;font-weight:700;cursor:pointer;position:relative;line-height:1.25;color:var(--txt)
   }
-  .bingo .cell.on{background:linear-gradient(180deg,#6ea83a,#4e8a28);color:#0e1f07;border-color:#6ea83a}
+  .bingo .cell.on{background:linear-gradient(160deg,#a3e635,#22d3ee);color:#0c2030;border-color:#a3e635}
   .bingo .cell.on::after{content:"✓";position:absolute;top:4px;right:6px;font-size:13px;font-weight:900}
 
   .chk{display:flex;align-items:flex-start;gap:10px;padding:10px 0;border-bottom:1px solid var(--line);cursor:pointer}
@@ -172,7 +190,9 @@
   .chk .t{font-size:14.5px}
 
   .note{font-size:12px;color:var(--mut2);text-align:center;padding:8px 4px 2px}
-  .banner{background:linear-gradient(90deg,#3a2c14,#2b2018);border:1px solid #5a4216;border-radius:12px;padding:10px 12px;font-size:12.5px;color:var(--gold);margin-bottom:12px}
+  .banner{background:linear-gradient(135deg,rgba(177,108,255,.28),rgba(34,211,238,.18));border:1px solid var(--line);border-radius:12px;padding:10px 12px;font-size:12.5px;color:var(--txt);margin-bottom:12px}
+  .banner b{color:var(--gold)}
+  .v-body .area{font-size:12px;color:var(--cyan);font-weight:800;letter-spacing:.2px;margin:3px 0 5px}
   .empty{text-align:center;color:var(--mut);padding:22px 8px;font-size:14px}
 
   /* modal */
@@ -209,7 +229,7 @@
       </div>
       <div class="progress"><i id="progBar"></i></div>
     </div>
-    <div class="banner">⏰ Hours change often — most taprooms run roughly <b>11am–late</b> on Saturdays. Tap a venue to check it on Maps. Order is a suggested west→south walking route.</div>
+    <div class="banner">🚶 Ordered as a walk <b>from London Bridge</b> (Tower Bridge Rd end) heading <b>south to South Bermondsey</b>. ⏰ Hours change often — most run roughly <b>11am–late</b> on Saturdays, but <b>The Kernel closes earliest</b>, so don't leave it too late. Tap Maps to check any stop.</div>
     <div id="venueList"></div>
     <div class="note">Curated guide — not affiliated with the venues. Drink responsibly & pace yourself. 💧</div>
   </section>
@@ -332,35 +352,37 @@
 
 <script>
 /* ---------------- Data ---------------- */
+// Ordered as a walk FROM London Bridge (Tower Bridge Rd end) heading SOUTH to
+// South Bermondsey. Druid St → Enid St → Dockley Rd → Verney/Almond Rd → Fourpure.
 const VENUES = [
-  {id:"southwark", name:"Southwark Brewing Co.", addr:"46 Druid St, SE1 2EZ", tag:"Traditional London ales",
-   known:"Big railway-arch taproom — cask & keg classics. A friendly, easy first stop."},
-  {id:"kanpai", name:"Kanpai London", addr:"48 Druid St, SE1 2HH", tag:"Sake brewery",
+  {id:"southwark", name:"Southwark Brewing Co.", area:"Druid St · nearest London Bridge", addr:"46 Druid St, SE1 2EZ", tag:"Traditional London ales",
+   known:"Big railway-arch taproom — cask & keg classics. A friendly, easy first stop at the Tower Bridge Road end."},
+  {id:"hiver", name:"Hiver Beers — The Taproom", area:"Maltby St · Tower Bridge Rd end", addr:"Arch 56, Stanworth St, SE1 3NY", tag:"Honey beers",
+   known:"At the top of Maltby Street Market, ~10 min from London Bridge. Beers brewed with British honey — the honey ale is the signature."},
+  {id:"kanpai", name:"Kanpai London", area:"Druid St", addr:"48 Druid St, SE1 2HH", tag:"Sake brewery",
    known:"The UK's first sake brewery. Try something different before the beer kicks in."},
-  {id:"barrel", name:"The Barrel Project (Cloudwater)", addr:"80 Druid St, SE1 2HQ", tag:"Barrel-aged & huge keg list",
+  {id:"barrel", name:"The Barrel Project (Cloudwater)", area:"Druid St", addr:"80 Druid St, SE1 2HQ", tag:"Barrel-aged & huge keg list",
    known:"Cloudwater's cellar door — enormous draught range, hazy IPAs and barrel-aged stuff."},
-  {id:"fabal", name:"FABAL Beerhall", addr:"88 Druid St, SE1 2HQ", tag:"English craft lager",
+  {id:"fabal", name:"FABAL Beerhall", area:"Druid St", addr:"88 Druid St, SE1 2HQ", tag:"English craft lager",
    known:"Spacious beer hall pouring crisp English-made lager. Good room for a big group."},
-  {id:"affinity", name:"Affinity Brewing", addr:"Druid St arches, SE1", tag:"Pales, IPAs & sours",
-   known:"Hop-forward pales and IPAs plus the odd fruited sour."},
-  {id:"anspach", name:"Anspach & Hobday — The Arch House", addr:"118 Druid St, SE1 2HH", tag:"Famous Porter & table beer",
-   known:"Home of 'The Porter' and a lovely table beer, plus guest taps and sours."},
-  {id:"bbno", name:"Brew By Numbers (BBNo)", addr:"79 Enid St, SE16 3RA", tag:"Saisons, IPAs, mixed-ferm",
+  {id:"anspach", name:"Anspach & Hobday — The Arch House", area:"Druid St", addr:"118 Druid St, SE1 2HH", tag:"Famous Porter & table beer",
+   known:"Home of 'The Porter' and a lovely table beer, plus guest taps and sours. Marks the south end of Druid St."},
+  {id:"affinity", name:"Affinity Brewing", area:"Enid St", addr:"Enid St arches, SE16", tag:"Pales, IPAs & sours",
+   known:"Hop-forward pales and IPAs plus the odd fruited sour, as you swing onto Enid Street."},
+  {id:"bbno", name:"Brew By Numbers (BBNo)", area:"Enid St", addr:"79 Enid St, SE16 3RA", tag:"Saisons, IPAs, mixed-ferm",
    known:"Everything's numbered — saisons, hoppy keg and a barrel/mixed-fermentation programme."},
-  {id:"kernel", name:"The Kernel Brewery", addr:"Arch 11, Dockley Rd Ind. Est., SE16 3SF", tag:"Legendary stouts & pales",
-   known:"Saturdays only. The iconic Export India Porter, Table Beer and ever-changing hoppy pales."},
-  {id:"mashpaddle", name:"Mash Paddle Brewery", addr:"Enid St arches, SE16", tag:"Community brewery",
+  {id:"mashpaddle", name:"Mash Paddle Brewery", area:"Enid St", addr:"Enid St arches, SE16", tag:"Community brewery",
    known:"Pales, lagers, stouts and ciders from a friendly local crew."},
-  {id:"gosnells", name:"Gosnells of London", addr:"85 Enid St, SE16 3RA", tag:"Mead bar",
+  {id:"gosnells", name:"Gosnells of London", area:"Enid St", addr:"85 Enid St, SE16 3RA", tag:"Mead bar",
    known:"London's mead specialists — light, sparkling 'sesh mead'. A fun palate-cleanser."},
-  {id:"spartan", name:"Spartan Brewery", addr:"Verney Rd arches, SE16", tag:"Pales & IPAs",
-   known:"Reliable modern pales and IPAs as you head south."},
-  {id:"hiver", name:"Hiver Beers — The Taproom", addr:"Stanworth St, SE1 3NY", tag:"Honey beers",
-   known:"Beers brewed with British honey. The honey ale is the signature."},
-  {id:"partizan", name:"Partizan Brewing", addr:"8 Almond Rd, SE16 3LR", tag:"Saisons & pales",
+  {id:"kernel", name:"The Kernel Brewery", area:"Dockley Rd · Sat only, opens early", addr:"Arch 11, Dockley Rd Ind. Est., SE16 3SF", tag:"Legendary stouts & pales",
+   known:"Saturdays only and closes earliest — hit it before it shuts. Iconic Export India Porter, Table Beer and hoppy pales."},
+  {id:"spartan", name:"Spartan Brewery", area:"Verney Rd · south end", addr:"Verney Rd arches, SE16", tag:"Pales & IPAs",
+   known:"Reliable modern pales and IPAs as you head into the southern stretch."},
+  {id:"partizan", name:"Partizan Brewing", area:"Almond Rd · south end", addr:"8 Almond Rd, SE16 3LR", tag:"Saisons & pales",
    known:"Elegant saisons and pales — and the prettiest labels on the mile."},
-  {id:"fourpure", name:"Fourpure Brewing Co.", addr:"22 Bermondsey Trading Est., Rotherhithe New Rd, SE16 3LL", tag:"Big modern taproom",
-   known:"The traditional finish line — large, lively taproom. Tick it off and toast the day. 🎉"}
+  {id:"fourpure", name:"Fourpure Brewing Co.", area:"Rotherhithe New Rd · the finish", addr:"22 Bermondsey Trading Est., Rotherhithe New Rd, SE16 3LL", tag:"Big modern taproom",
+   known:"The traditional finish line by South Bermondsey — large, lively taproom. Tick it off and toast the day. 🎉"}
 ];
 
 const STYLES = ["Pale Ale","IPA","Hazy/NEIPA","DIPA","Lager","Pilsner","Stout","Porter","Sour","Saison","Table Beer","Bitter","Mead","Sake","Cider","Other"];
@@ -464,6 +486,7 @@ function renderVenues(){
       <div class="v-num">${done?'✓':i+1}</div>
       <div class="v-body">
         <b>${esc(v.name)}</b>
+        <div class="area">🚶 ${esc(v.area)}</div>
         <div class="meta">📍 ${esc(v.addr)}</div>
         <span class="pill amber">${esc(v.tag)}</span>
         <div class="known" style="margin-top:8px">${esc(v.known)}</div>
