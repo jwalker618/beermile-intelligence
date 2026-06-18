@@ -29,7 +29,7 @@ Everything works as a plain file (the offline service worker is the only part th
 
 ## Deploying to GitHub Pages
 
-A workflow is included at `.github/workflows/deploy.yml`. One-time setup:
+A workflow is included at `.github/workflows/static.yml`. One-time setup:
 
 1. In the repo, go to **Settings → Pages**.
 2. Under **Build and deployment → Source**, choose **GitHub Actions**.
@@ -46,4 +46,4 @@ summary and under Settings → Pages.
 | `manifest.webmanifest` | PWA manifest (installable) |
 | `sw.js` | Service worker for offline use |
 | `icon.svg` | App icon |
-| `.github/workflows/deploy.yml` | GitHub Pages deploy workflow |
+| `.github/workflows/static.yml` | GitHub Pages deploy workflow |
