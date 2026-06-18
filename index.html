@@ -1,0 +1,687 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+<meta name="theme-color" content="#1a1410" />
+<meta name="apple-mobile-web-app-capable" content="yes" />
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+<meta name="apple-mobile-web-app-title" content="Beer Mile" />
+<title>Bermondsey Beer Mile</title>
+<link rel="manifest" href="./manifest.webmanifest" />
+<link rel="icon" href="./icon.svg" type="image/svg+xml" />
+<link rel="apple-touch-icon" href="./icon.svg" />
+<style>
+  :root{
+    --bg:#1a1410; --bg2:#221a13; --card:#2b2018; --card2:#34281d;
+    --line:#3d2f22; --txt:#f3e9dc; --mut:#b39c84; --mut2:#8a7660;
+    --amber:#f4a62a; --amber2:#ffc861; --hop:#7cb342; --red:#e2603f;
+    --gold:#ffd27a; --shadow:0 6px 22px rgba(0,0,0,.4);
+    --safe-b:env(safe-area-inset-bottom,0px);
+  }
+  *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+  html,body{margin:0;padding:0}
+  body{
+    background:radial-gradient(120% 80% at 50% 0%, #2a2016 0%, var(--bg) 60%);
+    color:var(--txt);
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+    min-height:100vh; line-height:1.4; padding-bottom:calc(78px + var(--safe-b));
+  }
+  h1,h2,h3{margin:0 0 .4em;line-height:1.15}
+  a{color:var(--amber2)}
+  .wrap{max-width:680px;margin:0 auto;padding:0 14px}
+
+  /* Header */
+  header{
+    position:sticky;top:0;z-index:30;
+    background:linear-gradient(180deg,rgba(26,20,16,.97),rgba(26,20,16,.86));
+    backdrop-filter:blur(8px);border-bottom:1px solid var(--line);
+    padding:calc(env(safe-area-inset-top,0px) + 10px) 0 10px;
+  }
+  .head-row{display:flex;align-items:center;gap:10px}
+  .logo{font-size:26px;filter:drop-shadow(0 2px 3px rgba(0,0,0,.5))}
+  .title b{display:block;font-size:17px;letter-spacing:.2px}
+  .title small{display:block;color:var(--mut);font-size:11.5px;font-weight:600;letter-spacing:.3px;text-transform:uppercase}
+  .crew-btn{
+    margin-left:auto;background:var(--card2);border:1px solid var(--line);color:var(--txt);
+    border-radius:999px;padding:7px 12px;font-weight:700;font-size:13px;display:flex;align-items:center;gap:6px;cursor:pointer
+  }
+  .crew-btn .dots{display:flex}
+  .crew-btn .dots span{width:18px;height:18px;border-radius:50%;display:grid;place-items:center;font-size:11px;margin-left:-5px;border:2px solid var(--bg);box-shadow:0 0 0 1px rgba(0,0,0,.2)}
+
+  /* Tabs / views */
+  .view{display:none;animation:fade .25s ease}
+  .view.active{display:block}
+  @keyframes fade{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
+  .view{padding-top:14px}
+
+  /* Bottom nav */
+  nav.tabs{
+    position:fixed;left:0;right:0;bottom:0;z-index:40;
+    background:linear-gradient(180deg,rgba(34,26,19,.92),rgba(20,15,11,.99));
+    backdrop-filter:blur(10px);border-top:1px solid var(--line);
+    display:flex;padding:6px 4px calc(6px + var(--safe-b));
+  }
+  nav.tabs button{
+    flex:1;background:none;border:0;color:var(--mut2);font-size:10.5px;font-weight:700;
+    display:flex;flex-direction:column;align-items:center;gap:3px;padding:5px 2px;cursor:pointer;letter-spacing:.2px
+  }
+  nav.tabs button .ic{font-size:21px;line-height:1;transition:transform .15s}
+  nav.tabs button.active{color:var(--amber2)}
+  nav.tabs button.active .ic{transform:translateY(-2px) scale(1.12)}
+
+  /* Cards */
+  .card{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:14px;margin-bottom:12px;box-shadow:var(--shadow)}
+  .card.tight{padding:12px}
+  .sec-title{display:flex;align-items:center;gap:8px;margin:18px 2px 8px;font-size:13px;text-transform:uppercase;letter-spacing:.6px;color:var(--mut);font-weight:800}
+  .sec-title:first-child{margin-top:2px}
+
+  .pill{display:inline-flex;align-items:center;gap:5px;background:var(--card2);border:1px solid var(--line);border-radius:999px;padding:3px 10px;font-size:12px;font-weight:700;color:var(--mut)}
+  .pill.hop{color:var(--hop);border-color:#3f5226}
+  .pill.amber{color:var(--amber2);border-color:#5a4216}
+
+  .btn{
+    appearance:none;border:0;border-radius:12px;padding:12px 16px;font-size:15px;font-weight:800;cursor:pointer;
+    background:linear-gradient(180deg,var(--amber2),var(--amber));color:#3a2400;box-shadow:0 4px 14px rgba(244,166,42,.28);width:100%
+  }
+  .btn:active{transform:translateY(1px)}
+  .btn.sec{background:var(--card2);color:var(--txt);border:1px solid var(--line);box-shadow:none}
+  .btn.ghost{background:none;border:1px dashed var(--line);color:var(--mut);box-shadow:none}
+  .btn.sm{padding:8px 12px;font-size:13px;width:auto;border-radius:10px}
+  .btn.danger{background:none;border:1px solid #5a2e22;color:var(--red);box-shadow:none}
+  .row{display:flex;gap:8px}
+  .row.wrap{flex-wrap:wrap}
+
+  label.fld{display:block;margin-bottom:10px}
+  label.fld .lbl{display:block;font-size:12px;font-weight:800;color:var(--mut);text-transform:uppercase;letter-spacing:.4px;margin-bottom:5px}
+  input,select,textarea{
+    width:100%;background:var(--bg2);border:1px solid var(--line);color:var(--txt);border-radius:11px;
+    padding:11px 12px;font-size:16px;font-family:inherit
+  }
+  input:focus,select,select:focus,textarea:focus{outline:none;border-color:var(--amber)}
+  .chips{display:flex;gap:7px;flex-wrap:wrap}
+  .chip{background:var(--bg2);border:1px solid var(--line);color:var(--mut);border-radius:999px;padding:8px 13px;font-size:13.5px;font-weight:700;cursor:pointer}
+  .chip.on{background:var(--amber);color:#3a2400;border-color:var(--amber)}
+  .chip.player.on{color:#fff}
+
+  /* Venues */
+  .venue{display:flex;gap:12px;align-items:flex-start}
+  .v-num{
+    flex:none;width:30px;height:30px;border-radius:50%;background:var(--card2);border:1px solid var(--line);
+    display:grid;place-items:center;font-weight:800;font-size:14px;color:var(--amber2);margin-top:2px
+  }
+  .venue.done .v-num{background:var(--hop);color:#10210a;border-color:var(--hop)}
+  .venue.done .v-body b{text-decoration:line-through;color:var(--mut)}
+  .v-body{flex:1;min-width:0}
+  .v-body b{font-size:16px}
+  .v-body .meta{color:var(--mut);font-size:13px;margin:3px 0 6px}
+  .v-body .known{font-size:13.5px;color:var(--txt);opacity:.92}
+  .v-actions{display:flex;gap:7px;margin-top:9px;flex-wrap:wrap}
+  .v-actions a,.v-actions button{font-size:12.5px;text-decoration:none}
+  .progress{height:9px;background:var(--bg2);border-radius:999px;overflow:hidden;border:1px solid var(--line)}
+  .progress i{display:block;height:100%;background:linear-gradient(90deg,var(--hop),#a6d96a);width:0;transition:width .4s}
+
+  /* logs */
+  .log{display:flex;gap:10px;align-items:center;padding:10px 0;border-bottom:1px solid var(--line)}
+  .log:last-child{border-bottom:0}
+  .log .ava{flex:none;width:32px;height:32px;border-radius:50%;display:grid;place-items:center;font-size:15px}
+  .log .l-body{flex:1;min-width:0}
+  .log .l-body b{font-size:14.5px}
+  .log .l-body .sub{font-size:12.5px;color:var(--mut)}
+  .log .l-right{text-align:right;flex:none}
+  .log .l-right .u{font-weight:800;color:var(--amber2);font-size:14px}
+  .log .l-right .st{font-size:12px;color:var(--gold);letter-spacing:1px}
+  .x{background:none;border:0;color:var(--mut2);font-size:18px;cursor:pointer;padding:4px}
+
+  .stat-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+  .stat{background:var(--card2);border:1px solid var(--line);border-radius:14px;padding:12px}
+  .stat .n{font-size:26px;font-weight:900;color:var(--amber2);line-height:1}
+  .stat .k{font-size:11.5px;color:var(--mut);text-transform:uppercase;letter-spacing:.5px;font-weight:800;margin-top:5px}
+  .lead{display:flex;align-items:center;gap:10px;padding:9px 0;border-bottom:1px solid var(--line)}
+  .lead:last-child{border-bottom:0}
+  .lead .rk{width:22px;font-weight:900;color:var(--mut)}
+  .lead .ava{width:30px;height:30px;border-radius:50%;display:grid;place-items:center;font-size:14px;flex:none}
+  .lead .bar{flex:1;height:8px;background:var(--bg2);border-radius:999px;overflow:hidden}
+  .lead .bar i{display:block;height:100%;background:linear-gradient(90deg,var(--amber),var(--amber2))}
+  .lead .val{font-weight:800;font-size:13px;min-width:64px;text-align:right;color:var(--txt)}
+
+  /* games */
+  .game-stage{background:var(--bg2);border:1px solid var(--line);border-radius:16px;padding:18px;text-align:center;margin-bottom:12px}
+  .picker-name{font-size:30px;font-weight:900;min-height:42px;display:flex;align-items:center;justify-content:center;gap:10px;transition:transform .08s}
+  .picker-name .e{font-size:34px}
+  .picker-sub{color:var(--mut);font-size:13px;margin-top:4px;min-height:18px;font-weight:700}
+  .dice-face{font-size:74px;line-height:1}
+  .coin{font-size:60px}
+  .roulette{font-size:22px;font-weight:800;min-height:30px}
+
+  /* bingo */
+  .bingo{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+  .bingo .cell{
+    aspect-ratio:1;background:var(--card2);border:1px solid var(--line);border-radius:12px;
+    display:flex;align-items:center;justify-content:center;text-align:center;padding:6px;
+    font-size:11.5px;font-weight:700;cursor:pointer;position:relative;line-height:1.25;color:var(--txt)
+  }
+  .bingo .cell.on{background:linear-gradient(180deg,#6ea83a,#4e8a28);color:#0e1f07;border-color:#6ea83a}
+  .bingo .cell.on::after{content:"✓";position:absolute;top:4px;right:6px;font-size:13px;font-weight:900}
+
+  .chk{display:flex;align-items:flex-start;gap:10px;padding:10px 0;border-bottom:1px solid var(--line);cursor:pointer}
+  .chk:last-child{border-bottom:0}
+  .chk .box{flex:none;width:24px;height:24px;border-radius:7px;border:2px solid var(--line);display:grid;place-items:center;font-size:14px;color:transparent;margin-top:1px}
+  .chk.on .box{background:var(--hop);border-color:var(--hop);color:#10210a}
+  .chk.on .t{color:var(--mut);text-decoration:line-through}
+  .chk .t{font-size:14.5px}
+
+  .note{font-size:12px;color:var(--mut2);text-align:center;padding:8px 4px 2px}
+  .banner{background:linear-gradient(90deg,#3a2c14,#2b2018);border:1px solid #5a4216;border-radius:12px;padding:10px 12px;font-size:12.5px;color:var(--gold);margin-bottom:12px}
+  .empty{text-align:center;color:var(--mut);padding:22px 8px;font-size:14px}
+
+  /* modal */
+  .modal-bg{position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:50;display:none;align-items:flex-end;justify-content:center}
+  .modal-bg.open{display:flex}
+  .modal{background:var(--bg2);border:1px solid var(--line);border-radius:20px 20px 0 0;width:100%;max-width:680px;max-height:88vh;overflow:auto;padding:18px 16px calc(20px + var(--safe-b));box-shadow:0 -10px 40px rgba(0,0,0,.5)}
+  .modal h2{display:flex;align-items:center;gap:8px}
+  .modal .grip{width:40px;height:4px;background:var(--line);border-radius:99px;margin:0 auto 14px}
+  .player-row{display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid var(--line)}
+  .player-row:last-child{border-bottom:0}
+  .player-row .ava{width:34px;height:34px;border-radius:50%;display:grid;place-items:center;font-size:16px;flex:none}
+  .player-row .nm{flex:1;font-weight:700}
+  .swatches{display:flex;gap:8px;flex-wrap:wrap;margin:6px 0 10px}
+  .sw{width:30px;height:30px;border-radius:50%;cursor:pointer;border:2px solid transparent}
+  .sw.on{border-color:#fff;box-shadow:0 0 0 2px var(--bg2)}
+</style>
+</head>
+<body>
+<header>
+  <div class="wrap head-row">
+    <span class="logo">🍺</span>
+    <div class="title"><b>Bermondsey Beer Mile</b><small id="dateLabel">Saturday session</small></div>
+    <button class="crew-btn" id="crewBtn"><span class="dots" id="crewDots"></span><span id="crewCount">Crew</span></button>
+  </div>
+</header>
+
+<main class="wrap">
+  <!-- VENUES -->
+  <section class="view active" id="view-venues">
+    <div class="card tight">
+      <div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:8px">
+        <b style="font-size:15px">Your progress</b>
+        <span id="progTxt" class="pill hop">0 / 0</span>
+      </div>
+      <div class="progress"><i id="progBar"></i></div>
+    </div>
+    <div class="banner">⏰ Hours change often — most taprooms run roughly <b>11am–late</b> on Saturdays. Tap a venue to check it on Maps. Order is a suggested west→south walking route.</div>
+    <div id="venueList"></div>
+    <div class="note">Curated guide — not affiliated with the venues. Drink responsibly & pace yourself. 💧</div>
+  </section>
+
+  <!-- LOG -->
+  <section class="view" id="view-log">
+    <div class="card">
+      <h3 style="margin-bottom:10px">📓 Log a drink</h3>
+      <div id="logNoCrew" class="empty" style="display:none">Add your crew first 👆 (tap <b>Crew</b> top-right) so we know who's drinking.</div>
+      <div id="logForm">
+        <label class="fld"><span class="lbl">Who's drinking?</span><div class="chips" id="logPlayers"></div></label>
+        <label class="fld"><span class="lbl">Venue</span><select id="logVenue"></select></label>
+        <div class="row">
+          <label class="fld" style="flex:1"><span class="lbl">Beer / drink name</span><input id="logBeer" placeholder="e.g. Export Stout" autocomplete="off"/></label>
+        </div>
+        <label class="fld"><span class="lbl">Style</span><div class="chips" id="logStyles"></div></label>
+        <div class="row">
+          <label class="fld" style="flex:1"><span class="lbl">Size</span><select id="logSize"></select></label>
+          <label class="fld" style="width:96px"><span class="lbl">ABV %</span><input id="logAbv" type="number" inputmode="decimal" step="0.1" min="0" placeholder="5.0"/></label>
+        </div>
+        <label class="fld"><span class="lbl">Rating</span><div class="chips" id="logRating"></div></label>
+        <button class="btn" id="logSave">🍻 Add to the tally</button>
+      </div>
+    </div>
+
+    <div class="sec-title">📜 Today's log <span id="logCount" class="pill" style="margin-left:auto"></span></div>
+    <div class="card"><div id="logList"><div class="empty">No drinks logged yet. The day is young! 🌅</div></div></div>
+  </section>
+
+  <!-- GAMES -->
+  <section class="view" id="view-games">
+    <div class="card">
+      <h3>🍻 Whose round is it?</h3>
+      <p style="color:var(--mut);font-size:13px;margin:0 0 12px">Spin to decide who heads to the bar.</p>
+      <div class="game-stage">
+        <div class="picker-name" id="pickerName">—</div>
+        <div class="picker-sub" id="pickerSub">Add crew, then spin</div>
+      </div>
+      <button class="btn" id="spinBtn">🎯 Spin the wheel</button>
+    </div>
+
+    <div class="card">
+      <h3>🎲 Dice</h3>
+      <div class="game-stage"><div class="dice-face" id="diceFace">⚀</div><div class="picker-sub" id="diceSub">Tap to roll</div></div>
+      <div class="row">
+        <button class="btn sec" id="diceOne">Roll 1</button>
+        <button class="btn sec" id="diceTwo">Roll 2</button>
+      </div>
+    </div>
+
+    <div class="card">
+      <h3>🪙 Coin flip</h3>
+      <div class="game-stage"><div class="coin" id="coinFace">🪙</div><div class="picker-sub" id="coinSub">Heads or tails?</div></div>
+      <button class="btn sec" id="coinBtn">Flip</button>
+    </div>
+
+    <div class="card">
+      <h3>🎡 Beer roulette</h3>
+      <p style="color:var(--mut);font-size:13px;margin:0 0 12px">Can't decide what to drink? Let fate choose a style.</p>
+      <div class="game-stage"><div class="roulette" id="rouletteOut">🤔</div></div>
+      <button class="btn sec" id="rouletteBtn">Pick my next beer</button>
+    </div>
+  </section>
+
+  <!-- FUN -->
+  <section class="view" id="view-fun">
+    <div class="sec-title">🎯 Beer Mile Bingo <button class="btn ghost sm" id="bingoReset" style="margin-left:auto">Reset</button></div>
+    <div class="card"><div class="bingo" id="bingoGrid"></div><div class="note" id="bingoNote"></div></div>
+
+    <div class="sec-title">🃏 Dare draw</div>
+    <div class="card">
+      <div class="game-stage"><div class="roulette" id="dareOut">Tap for a dare…</div></div>
+      <button class="btn sec" id="dareBtn">🎴 Draw a dare</button>
+    </div>
+
+    <div class="sec-title">📸 Photo challenges</div>
+    <div class="card"><div id="photoList"></div></div>
+  </section>
+
+  <!-- STATS -->
+  <section class="view" id="view-stats">
+    <div class="sec-title">📊 The damage so far</div>
+    <div class="stat-grid" id="statGrid"></div>
+
+    <div class="sec-title">🏆 Leaderboard <span class="pill" style="margin-left:auto">by units</span></div>
+    <div class="card"><div id="leaderboard"><div class="empty">No data yet — log some drinks!</div></div></div>
+
+    <div class="sec-title">✨ Highlights</div>
+    <div class="card"><div id="highlights"><div class="empty">Highlights appear once the round gets going.</div></div></div>
+
+    <div class="card" style="margin-top:6px">
+      <button class="btn ghost" id="resetDay">♻️ Reset the day (logs & ticks)</button>
+      <div class="note">Everything is saved only on this phone. Each person tracks their own.</div>
+    </div>
+  </section>
+</main>
+
+<nav class="tabs">
+  <button data-tab="venues" class="active"><span class="ic">🍺</span>Venues</button>
+  <button data-tab="log"><span class="ic">📓</span>Log</button>
+  <button data-tab="games"><span class="ic">🎲</span>Games</button>
+  <button data-tab="fun"><span class="ic">🎯</span>Fun</button>
+  <button data-tab="stats"><span class="ic">📊</span>Stats</button>
+</nav>
+
+<!-- Crew modal -->
+<div class="modal-bg" id="crewModal">
+  <div class="modal">
+    <div class="grip"></div>
+    <h2>👥 Your crew</h2>
+    <p style="color:var(--mut);font-size:13px;margin-top:0">Add everyone in the group. Used for the logger, leaderboard & "whose round" spinner.</p>
+    <div id="playerList"></div>
+    <label class="fld" style="margin-top:14px"><span class="lbl">Add a name</span><input id="newName" placeholder="e.g. Sam" autocomplete="off" maxlength="16"/></label>
+    <span class="lbl" style="display:block;font-size:12px;font-weight:800;color:var(--mut);text-transform:uppercase;letter-spacing:.4px;margin-bottom:5px">Colour</span>
+    <div class="swatches" id="swatches"></div>
+    <button class="btn" id="addPlayer">➕ Add to crew</button>
+    <button class="btn sec" id="closeCrew" style="margin-top:8px">Done</button>
+  </div>
+</div>
+
+<script>
+/* ---------------- Data ---------------- */
+const VENUES = [
+  {id:"southwark", name:"Southwark Brewing Co.", addr:"46 Druid St, SE1 2EZ", tag:"Traditional London ales",
+   known:"Big railway-arch taproom — cask & keg classics. A friendly, easy first stop."},
+  {id:"kanpai", name:"Kanpai London", addr:"48 Druid St, SE1 2HH", tag:"Sake brewery",
+   known:"The UK's first sake brewery. Try something different before the beer kicks in."},
+  {id:"barrel", name:"The Barrel Project (Cloudwater)", addr:"80 Druid St, SE1 2HQ", tag:"Barrel-aged & huge keg list",
+   known:"Cloudwater's cellar door — enormous draught range, hazy IPAs and barrel-aged stuff."},
+  {id:"fabal", name:"FABAL Beerhall", addr:"88 Druid St, SE1 2HQ", tag:"English craft lager",
+   known:"Spacious beer hall pouring crisp English-made lager. Good room for a big group."},
+  {id:"affinity", name:"Affinity Brewing", addr:"Druid St arches, SE1", tag:"Pales, IPAs & sours",
+   known:"Hop-forward pales and IPAs plus the odd fruited sour."},
+  {id:"anspach", name:"Anspach & Hobday — The Arch House", addr:"118 Druid St, SE1 2HH", tag:"Famous Porter & table beer",
+   known:"Home of 'The Porter' and a lovely table beer, plus guest taps and sours."},
+  {id:"bbno", name:"Brew By Numbers (BBNo)", addr:"79 Enid St, SE16 3RA", tag:"Saisons, IPAs, mixed-ferm",
+   known:"Everything's numbered — saisons, hoppy keg and a barrel/mixed-fermentation programme."},
+  {id:"kernel", name:"The Kernel Brewery", addr:"Arch 11, Dockley Rd Ind. Est., SE16 3SF", tag:"Legendary stouts & pales",
+   known:"Saturdays only. The iconic Export India Porter, Table Beer and ever-changing hoppy pales."},
+  {id:"mashpaddle", name:"Mash Paddle Brewery", addr:"Enid St arches, SE16", tag:"Community brewery",
+   known:"Pales, lagers, stouts and ciders from a friendly local crew."},
+  {id:"gosnells", name:"Gosnells of London", addr:"85 Enid St, SE16 3RA", tag:"Mead bar",
+   known:"London's mead specialists — light, sparkling 'sesh mead'. A fun palate-cleanser."},
+  {id:"spartan", name:"Spartan Brewery", addr:"Verney Rd arches, SE16", tag:"Pales & IPAs",
+   known:"Reliable modern pales and IPAs as you head south."},
+  {id:"hiver", name:"Hiver Beers — The Taproom", addr:"Stanworth St, SE1 3NY", tag:"Honey beers",
+   known:"Beers brewed with British honey. The honey ale is the signature."},
+  {id:"partizan", name:"Partizan Brewing", addr:"8 Almond Rd, SE16 3LR", tag:"Saisons & pales",
+   known:"Elegant saisons and pales — and the prettiest labels on the mile."},
+  {id:"fourpure", name:"Fourpure Brewing Co.", addr:"22 Bermondsey Trading Est., Rotherhithe New Rd, SE16 3LL", tag:"Big modern taproom",
+   known:"The traditional finish line — large, lively taproom. Tick it off and toast the day. 🎉"}
+];
+
+const STYLES = ["Pale Ale","IPA","Hazy/NEIPA","DIPA","Lager","Pilsner","Stout","Porter","Sour","Saison","Table Beer","Bitter","Mead","Sake","Cider","Other"];
+const SIZES = [
+  {id:"third", label:"Third (⅓)", ml:150},
+  {id:"half", label:"Half", ml:284},
+  {id:"two", label:"Schooner (⅔)", ml:379},
+  {id:"pint", label:"Pint", ml:568},
+  {id:"can33", label:"Can/bottle 330ml", ml:330},
+  {id:"can44", label:"Can/bottle 440ml", ml:440}
+];
+const COLORS = ["#f4a62a","#e2603f","#7cb342","#42a5f5","#ab47bc","#26c6da","#ec407a","#8d6e63","#ffca28","#66bb6a"];
+const EMOJIS = ["🍺","🍻","🦊","🐙","🦁","🐝","🐸","🦄","🐳","🐧","🦖","👑","🌮","🎸","⚡","🌶️"];
+
+const BINGO = [
+  "Try a sour","Sink a stout or porter","Order a third (⅓)","Try a mead or sake",
+  "Take a group selfie","Try something 8%+","Eat some street food","Chat to the brewer/staff",
+  "Buy a can to take home"
+];
+const DARES = [
+  "Buy the next round. No arguments.","Speak only in beer puns until the next venue.",
+  "Let the person on your left pick your next beer.","Rate the last beer out loud in a wine-snob voice.",
+  "Do your best brewery tour-guide impression.","Compliment a stranger's beer choice.",
+  "Swap a sip with someone in the crew.","No phones until the next stop — pints down if you slip.",
+  "Cheers everyone individually by name.","Name a beer style for every letter… A, B, C — go!",
+  "Predict your group's favourite beer of the day.","Order in your poshest accent at the next bar."
+];
+const PHOTOS = [
+  "The whole crew at stop #1","Best beer label of the day","Most ridiculous beer name you spot",
+  "Group 'cheers' clink shot","The view down the railway arches","Your favourite pour of the day"
+];
+const ROULETTE = STYLES.filter(s=>!["Other"].includes(s));
+
+/* ---------------- State ---------------- */
+const KEY="bbm_state_v1";
+const def={players:[],visited:{},logs:[],bingo:{},photos:{},newColor:COLORS[0]};
+let S=load();
+function load(){try{return Object.assign(structuredClone(def),JSON.parse(localStorage.getItem(KEY))||{})}catch(e){return structuredClone(def)}}
+function save(){localStorage.setItem(KEY,JSON.stringify(S))}
+const $=(s,r=document)=>r.querySelector(s);
+const $$=(s,r=document)=>[...r.querySelectorAll(s)];
+const uid=()=>Math.random().toString(36).slice(2,9);
+const esc=s=>String(s).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+function playerById(id){return S.players.find(p=>p.id===id)}
+function units(abv,ml){return (Number(abv)||0)*ml/1000}
+function venueName(id){return (VENUES.find(v=>v.id===id)||{}).name||"—"}
+
+/* ---------------- Tabs ---------------- */
+$$("nav.tabs button").forEach(b=>b.onclick=()=>{
+  $$("nav.tabs button").forEach(x=>x.classList.toggle("active",x===b));
+  $$(".view").forEach(v=>v.classList.toggle("active",v.id==="view-"+b.dataset.tab));
+  if(b.dataset.tab==="stats")renderStats();
+  window.scrollTo({top:0,behavior:"smooth"});
+});
+
+/* ---------------- Crew ---------------- */
+const crewModal=$("#crewModal");
+$("#crewBtn").onclick=openCrew;
+$("#closeCrew").onclick=()=>crewModal.classList.remove("open");
+crewModal.onclick=e=>{if(e.target===crewModal)crewModal.classList.remove("open")};
+function openCrew(){renderPlayerList();renderSwatches();crewModal.classList.add("open")}
+function renderSwatches(){
+  $("#swatches").innerHTML=COLORS.map(c=>`<div class="sw ${c===S.newColor?'on':''}" style="background:${c}" data-c="${c}"></div>`).join("");
+  $$("#swatches .sw").forEach(el=>el.onclick=()=>{S.newColor=el.dataset.c;save();renderSwatches()});
+}
+function renderPlayerList(){
+  const el=$("#playerList");
+  if(!S.players.length){el.innerHTML=`<div class="empty" style="padding:10px">No-one yet — add your first crew member below.</div>`;return}
+  el.innerHTML=S.players.map(p=>`<div class="player-row">
+    <span class="ava" style="background:${p.color}">${p.emoji}</span>
+    <span class="nm">${esc(p.name)}</span>
+    <button class="x" data-del="${p.id}" aria-label="remove">✕</button></div>`).join("");
+  $$("#playerList [data-del]").forEach(b=>b.onclick=()=>{
+    S.players=S.players.filter(p=>p.id!==b.dataset.del);save();renderPlayerList();syncCrew()});
+}
+$("#addPlayer").onclick=()=>{
+  const n=$("#newName").value.trim();if(!n)return;
+  const used=S.players.map(p=>p.emoji);
+  const emoji=EMOJIS.find(e=>!used.includes(e))||EMOJIS[S.players.length%EMOJIS.length];
+  S.players.push({id:uid(),name:n,color:S.newColor,emoji});
+  $("#newName").value="";
+  const ci=(COLORS.indexOf(S.newColor)+1)%COLORS.length;S.newColor=COLORS[ci];
+  save();renderPlayerList();renderSwatches();syncCrew();
+};
+$("#newName").addEventListener("keydown",e=>{if(e.key==="Enter")$("#addPlayer").click()});
+
+function syncCrew(){
+  const c=S.players.length;
+  $("#crewCount").textContent=c?`${c}`:"Crew";
+  $("#crewDots").innerHTML=S.players.slice(0,4).map(p=>`<span style="background:${p.color}">${p.emoji}</span>`).join("");
+  renderLogPlayers();renderPickerReady();
+}
+
+/* ---------------- Venues ---------------- */
+function renderVenues(){
+  const list=$("#venueList");
+  list.innerHTML=VENUES.map((v,i)=>{
+    const done=!!S.visited[v.id];
+    const q=encodeURIComponent(v.name+", Bermondsey, London");
+    return `<div class="card venue ${done?'done':''}">
+      <div class="v-num">${done?'✓':i+1}</div>
+      <div class="v-body">
+        <b>${esc(v.name)}</b>
+        <div class="meta">📍 ${esc(v.addr)}</div>
+        <span class="pill amber">${esc(v.tag)}</span>
+        <div class="known" style="margin-top:8px">${esc(v.known)}</div>
+        <div class="v-actions">
+          <a class="btn sec sm" target="_blank" rel="noopener" href="https://www.google.com/maps/search/?api=1&query=${q}">🗺️ Maps</a>
+          <button class="btn ${done?'ghost':'sec'} sm" data-tick="${v.id}">${done?'↩︎ Untick':'✓ Been here'}</button>
+          <button class="btn sec sm" data-loghere="${v.id}">📓 Log a drink</button>
+        </div>
+      </div></div>`;
+  }).join("");
+  $$("#venueList [data-tick]").forEach(b=>b.onclick=()=>{
+    const id=b.dataset.tick;S.visited[id]?delete S.visited[id]:S.visited[id]=Date.now();save();renderVenues()});
+  $$("#venueList [data-loghere]").forEach(b=>b.onclick=()=>{
+    gotoLog(b.dataset.loghere)});
+  const done=Object.keys(S.visited).length,total=VENUES.length;
+  $("#progBar").style.width=(total?done/total*100:0)+"%";
+  $("#progTxt").textContent=`${done} / ${total}`;
+}
+function gotoLog(venueId){
+  $$("nav.tabs button").forEach(x=>x.classList.toggle("active",x.dataset.tab==="log"));
+  $$(".view").forEach(v=>v.classList.toggle("active",v.id==="view-log"));
+  $("#logVenue").value=venueId;window.scrollTo({top:0,behavior:"smooth"});
+}
+
+/* ---------------- Logger ---------------- */
+let logSel={player:null,style:null,size:"pint",rating:0};
+function initLog(){
+  $("#logVenue").innerHTML=VENUES.map(v=>`<option value="${v.id}">${esc(v.name)}</option>`).join("");
+  $("#logSize").innerHTML=SIZES.map(s=>`<option value="${s.id}" ${s.id==="pint"?"selected":""}>${s.label}</option>`).join("");
+  $("#logStyles").innerHTML=STYLES.map(s=>`<span class="chip" data-style="${s}">${s}</span>`).join("");
+  $("#logRating").innerHTML=[1,2,3,4,5].map(n=>`<span class="chip" data-rate="${n}">${"★".repeat(n)}</span>`).join("");
+  $$("#logStyles .chip").forEach(c=>c.onclick=()=>{logSel.style=logSel.style===c.dataset.style?null:c.dataset.style;
+    $$("#logStyles .chip").forEach(x=>x.classList.toggle("on",x.dataset.style===logSel.style))});
+  $$("#logRating .chip").forEach(c=>c.onclick=()=>{const n=+c.dataset.rate;logSel.rating=logSel.rating===n?0:n;
+    $$("#logRating .chip").forEach(x=>x.classList.toggle("on",+x.dataset.rate===logSel.rating))});
+}
+function renderLogPlayers(){
+  const has=S.players.length;
+  $("#logForm").style.display=has?"block":"none";
+  $("#logNoCrew").style.display=has?"none":"block";
+  if(!has)return;
+  if(!S.players.some(p=>p.id===logSel.player))logSel.player=S.players[0].id;
+  $("#logPlayers").innerHTML=S.players.map(p=>`<span class="chip player ${p.id===logSel.player?'on':''}" data-pl="${p.id}" style="${p.id===logSel.player?`background:${p.color};border-color:${p.color}`:''}">${p.emoji} ${esc(p.name)}</span>`).join("");
+  $$("#logPlayers .chip").forEach(c=>c.onclick=()=>{logSel.player=c.dataset.pl;renderLogPlayers()});
+}
+$("#logSave").onclick=()=>{
+  if(!S.players.length){openCrew();return}
+  const size=SIZES.find(s=>s.id===$("#logSize").value);
+  const log={id:uid(),ts:Date.now(),playerId:logSel.player,venueId:$("#logVenue").value,
+    beer:$("#logBeer").value.trim(),style:logSel.style||"",abv:parseFloat($("#logAbv").value)||0,
+    sizeId:size.id,ml:size.ml,rating:logSel.rating};
+  S.logs.unshift(log);
+  if(!S.visited[log.venueId])S.visited[log.venueId]=Date.now();
+  save();
+  // reset light fields
+  $("#logBeer").value="";$("#logAbv").value="";logSel.style=null;logSel.rating=0;
+  $$("#logStyles .chip").forEach(x=>x.classList.remove("on"));
+  $$("#logRating .chip").forEach(x=>x.classList.remove("on"));
+  renderLogList();renderVenues();
+  const btn=$("#logSave"),t=btn.textContent;btn.textContent="✅ Logged! Cheers 🍻";setTimeout(()=>btn.textContent=t,1100);
+};
+function renderLogList(){
+  const el=$("#logList");
+  $("#logCount").textContent=S.logs.length?`${S.logs.length} drink${S.logs.length>1?'s':''}`:"";
+  if(!S.logs.length){el.innerHTML=`<div class="empty">No drinks logged yet. The day is young! 🌅</div>`;return}
+  el.innerHTML=S.logs.map(l=>{
+    const p=playerById(l.playerId)||{name:"?",emoji:"🍺",color:"#555"};
+    const u=units(l.abv,l.ml);
+    const time=new Date(l.ts).toLocaleTimeString([], {hour:"2-digit",minute:"2-digit"});
+    const meta=[venueName(l.venueId),l.style,l.abv?l.abv+"%":""].filter(Boolean).join(" · ");
+    return `<div class="log">
+      <span class="ava" style="background:${p.color}">${p.emoji}</span>
+      <div class="l-body"><b>${esc(l.beer||l.style||"Drink")}</b><div class="sub">${esc(p.name)} · ${time}<br>${esc(meta)}</div></div>
+      <div class="l-right"><div class="u">${u.toFixed(1)}u</div>${l.rating?`<div class="st">${"★".repeat(l.rating)}</div>`:""}</div>
+      <button class="x" data-dellog="${l.id}">✕</button></div>`;
+  }).join("");
+  $$("#logList [data-dellog]").forEach(b=>b.onclick=()=>{S.logs=S.logs.filter(l=>l.id!==b.dataset.dellog);save();renderLogList()});
+}
+
+/* ---------------- Stats ---------------- */
+function renderStats(){
+  const grid=$("#statGrid"),logs=S.logs;
+  const totU=logs.reduce((a,l)=>a+units(l.abv,l.ml),0);
+  const totMl=logs.reduce((a,l)=>a+l.ml,0);
+  const pints=totMl/568;
+  const rated=logs.filter(l=>l.rating);
+  const avg=rated.length?rated.reduce((a,l)=>a+l.rating,0)/rated.length:0;
+  grid.innerHTML=[
+    [logs.length,"Drinks"],[totU.toFixed(1),"Units"],
+    [pints.toFixed(1),"Pint equiv."],[Object.keys(S.visited).length+"/"+VENUES.length,"Venues"],
+    [avg?avg.toFixed(1)+"★":"–","Avg rating"],[(logs.length&&S.players.length?(totU/S.players.length).toFixed(1):"0")+"u","Per person"]
+  ].map(([n,k])=>`<div class="stat"><div class="n">${n}</div><div class="k">${k}</div></div>`).join("");
+
+  // leaderboard by units
+  const lb=$("#leaderboard");
+  if(!logs.length||!S.players.length){lb.innerHTML=`<div class="empty">No data yet — log some drinks!</div>`}
+  else{
+    const tally=S.players.map(p=>({p,u:logs.filter(l=>l.playerId===p.id).reduce((a,l)=>a+units(l.abv,l.ml),0),
+      n:logs.filter(l=>l.playerId===p.id).length})).sort((a,b)=>b.u-a.u);
+    const max=Math.max(...tally.map(t=>t.u),0.1);
+    lb.innerHTML=tally.map((t,i)=>`<div class="lead">
+      <span class="rk">${["🥇","🥈","🥉"][i]||(i+1)}</span>
+      <span class="ava" style="background:${t.p.color}">${t.p.emoji}</span>
+      <div style="flex:1;min-width:0"><div style="font-weight:700;font-size:13.5px">${esc(t.p.name)}</div>
+      <div class="bar"><i style="width:${t.u/max*100}%"></i></div></div>
+      <span class="val">${t.u.toFixed(1)}u · ${t.n}🍺</span></div>`).join("");
+  }
+
+  // highlights
+  const hl=$("#highlights");
+  if(!logs.length){hl.innerHTML=`<div class="empty">Highlights appear once the round gets going.</div>`}
+  else{
+    const strongest=[...logs].sort((a,b)=>b.abv-a.abv)[0];
+    const best=[...rated].sort((a,b)=>b.rating-a.rating)[0];
+    const byVenue={};logs.forEach(l=>byVenue[l.venueId]=(byVenue[l.venueId]||0)+1);
+    const topVenue=Object.entries(byVenue).sort((a,b)=>b[1]-a[1])[0];
+    const styleCount={};logs.forEach(l=>{if(l.style)styleCount[l.style]=(styleCount[l.style]||0)+1});
+    const topStyle=Object.entries(styleCount).sort((a,b)=>b[1]-a[1])[0];
+    const rows=[];
+    if(strongest&&strongest.abv)rows.push(["💪","Strongest drink",`${esc(strongest.beer||strongest.style||"Drink")} — ${strongest.abv}%`]);
+    if(best)rows.push(["⭐","Top rated",`${esc(best.beer||best.style||"Drink")} — ${"★".repeat(best.rating)}`]);
+    if(topVenue)rows.push(["🏠","Most-visited stop",`${esc(venueName(topVenue[0]))} (${topVenue[1]})`]);
+    if(topStyle)rows.push(["🍺","Style of the day",`${esc(topStyle[0])} ×${topStyle[1]}`]);
+    hl.innerHTML=rows.map(([e,k,v])=>`<div class="lead"><span style="font-size:20px">${e}</span>
+      <div style="flex:1"><div style="font-size:12px;color:var(--mut);font-weight:800;text-transform:uppercase;letter-spacing:.4px">${k}</div>
+      <div style="font-weight:700">${v}</div></div></div>`).join("");
+  }
+}
+$("#resetDay").onclick=()=>{
+  if(!confirm("Reset today's logs and venue ticks? Your crew stays. This can't be undone."))return;
+  S.logs=[];S.visited={};S.bingo={};S.photos={};save();
+  renderVenues();renderLogList();renderStats();renderBingo();renderPhotos();
+};
+
+/* ---------------- Games ---------------- */
+const pickName=$("#pickerName"),pickSub=$("#pickerSub");
+function renderPickerReady(){
+  if(!S.players.length){pickName.textContent="—";pickSub.textContent="Add crew, then spin";}
+  else{pickName.textContent="Ready";pickSub.textContent=`${S.players.length} in the running`;}
+}
+let spinning=false;
+$("#spinBtn").onclick=()=>{
+  if(!S.players.length){openCrew();return}
+  if(spinning)return;spinning=true;
+  const winner=S.players[Math.floor(Math.random()*S.players.length)];
+  let i=0,n=18+Math.floor(Math.random()*S.players.length),delay=45;
+  pickSub.textContent="Spinning…";
+  (function step(){
+    const p=S.players[i%S.players.length];
+    pickName.innerHTML=`<span class="e">${p.emoji}</span> ${esc(p.name)}`;
+    pickName.style.transform="scale(1.05)";setTimeout(()=>pickName.style.transform="scale(1)",60);
+    i++;
+    if(i<=n){delay*=1.12;setTimeout(step,delay)}
+    else{pickName.innerHTML=`<span class="e">${winner.emoji}</span> ${esc(winner.name)}`;
+      pickSub.textContent="🍻 …you're up! Get the round in.";spinning=false;
+      if(navigator.vibrate)navigator.vibrate([20,40,20]);}
+  })();
+};
+
+const DICE=["⚀","⚁","⚂","⚃","⚄","⚅"];
+function rollDice(count){
+  const face=$("#diceFace"),sub=$("#diceSub");let t=0;
+  const iv=setInterval(()=>{
+    if(count===1)face.textContent=DICE[Math.floor(Math.random()*6)];
+    else{const a=Math.floor(Math.random()*6),b=Math.floor(Math.random()*6);face.textContent=DICE[a]+DICE[b]}
+    if(++t>10){clearInterval(iv);
+      if(count===1){const r=1+Math.floor(Math.random()*6);face.textContent=DICE[r-1];sub.textContent=`You rolled ${r}`;}
+      else{const a=1+Math.floor(Math.random()*6),b=1+Math.floor(Math.random()*6);face.textContent=DICE[a-1]+DICE[b-1];sub.textContent=`${a} + ${b} = ${a+b}`;}
+      if(navigator.vibrate)navigator.vibrate(30);}
+  },60);
+}
+$("#diceOne").onclick=()=>rollDice(1);
+$("#diceTwo").onclick=()=>rollDice(2);
+
+$("#coinBtn").onclick=()=>{
+  const face=$("#coinFace"),sub=$("#coinSub");let t=0;sub.textContent="Flipping…";
+  const iv=setInterval(()=>{face.textContent=t%2?"🪙":"🟡";
+    if(++t>10){clearInterval(iv);const h=Math.random()<.5;face.textContent=h?"👑":"🦁";
+      sub.textContent=h?"HEADS":"TAILS";if(navigator.vibrate)navigator.vibrate(30)}},80);
+};
+
+$("#rouletteBtn").onclick=()=>{
+  const out=$("#rouletteOut");let t=0;
+  const iv=setInterval(()=>{out.textContent=ROULETTE[Math.floor(Math.random()*ROULETTE.length)];
+    if(++t>14){clearInterval(iv);const pick=ROULETTE[Math.floor(Math.random()*ROULETTE.length)];
+      out.textContent="🍺 "+pick+"!";if(navigator.vibrate)navigator.vibrate(30)}},70);
+};
+
+/* ---------------- Fun: bingo / dares / photos ---------------- */
+function renderBingo(){
+  const g=$("#bingoGrid");
+  g.innerHTML=BINGO.map((t,i)=>`<div class="cell ${S.bingo[i]?'on':''}" data-b="${i}">${t}</div>`).join("");
+  $$("#bingoGrid .cell").forEach(c=>c.onclick=()=>{const i=c.dataset.b;S.bingo[i]?delete S.bingo[i]:S.bingo[i]=1;save();renderBingo()});
+  const n=Object.keys(S.bingo).length;
+  $("#bingoNote").textContent=n>=9?"🎉 FULL HOUSE! Legend.":`${n} / 9 ticked — get a line for bragging rights.`;
+}
+$("#bingoReset").onclick=()=>{S.bingo={};save();renderBingo()};
+$("#dareBtn").onclick=()=>{
+  const out=$("#dareOut");let t=0;
+  const iv=setInterval(()=>{out.textContent=DARES[Math.floor(Math.random()*DARES.length)];
+    if(++t>12){clearInterval(iv);out.textContent="🃏 "+DARES[Math.floor(Math.random()*DARES.length)];
+      if(navigator.vibrate)navigator.vibrate(30)}},65);
+};
+function renderPhotos(){
+  const el=$("#photoList");
+  el.innerHTML=PHOTOS.map((t,i)=>`<div class="chk ${S.photos[i]?'on':''}" data-ph="${i}"><span class="box">✓</span><span class="t">${t}</span></div>`).join("");
+  $$("#photoList .chk").forEach(c=>c.onclick=()=>{const i=c.dataset.ph;S.photos[i]?delete S.photos[i]:S.photos[i]=1;save();renderPhotos()});
+}
+
+/* ---------------- Boot ---------------- */
+(function(){
+  const d=new Date();
+  $("#dateLabel").textContent=d.toLocaleDateString([], {weekday:"long",day:"numeric",month:"long"})+" session";
+  initLog();renderVenues();renderLogList();renderBingo();renderPhotos();renderPickerReady();syncCrew();
+  if("serviceWorker" in navigator && location.protocol.startsWith("http")){
+    navigator.serviceWorker.register("./sw.js").catch(()=>{});
+  }
+})();
+</script>
+</body>
+</html>
