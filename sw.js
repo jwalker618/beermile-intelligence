@@ -1,5 +1,5 @@
 /* Simple offline cache so the app works with no signal in the railway arches. */
-const CACHE = "bbm-v1";
+const CACHE = "bbm-v2";
 const ASSETS = ["./", "./index.html", "./manifest.webmanifest", "./icon.svg"];
 
 self.addEventListener("install", e => {

@@ -11,6 +11,8 @@
 <link rel="manifest" href="./manifest.webmanifest" />
 <link rel="icon" href="./icon.svg" type="image/svg+xml" />
 <link rel="apple-touch-icon" href="./icon.svg" />
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" crossorigin="" />
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" crossorigin="" defer></script>
 <style>
   :root{
     --bg:#15121f; --bg2:#1e1a30; --card:#221d38; --card2:#2c2650;
@@ -208,6 +210,36 @@
   .swatches{display:flex;gap:8px;flex-wrap:wrap;margin:6px 0 10px}
   .sw{width:30px;height:30px;border-radius:50%;cursor:pointer;border:2px solid transparent}
   .sw.on{border-color:#fff;box-shadow:0 0 0 2px var(--bg2)}
+
+  /* map */
+  .map-card{padding:0;overflow:hidden}
+  #map{height:264px;width:100%;background:var(--bg2)}
+  .map-fallback{display:flex;align-items:center;justify-content:center;text-align:center;height:140px;padding:18px;color:var(--mut);font-size:13px}
+  .map-note{font-size:11.5px;color:var(--mut2);text-align:center;padding:6px 4px 10px}
+  .pin{width:28px;height:28px;border-radius:50% 50% 50% 0;background:var(--pink);transform:rotate(-45deg);border:2.5px solid #fff;box-shadow:0 2px 8px rgba(0,0,0,.5);display:grid;place-items:center}
+  .pin span{transform:rotate(45deg);color:#fff;font-weight:800;font-size:12px;line-height:1}
+  .pin.done{background:var(--hop)}
+  .pin.done span{color:#0c2030}
+  .leaflet-popup-content{margin:10px 12px;font-family:inherit}
+  .leaflet-popup-content b{font-size:14px}
+  .pop-actions{margin-top:7px;display:flex;gap:6px;flex-wrap:wrap}
+  .pop-actions a{font-size:12px;font-weight:700;text-decoration:none;background:#efeefb;color:#2a1b4d;border-radius:8px;padding:5px 9px}
+  .hungry-btn{background:linear-gradient(135deg,#22d3ee,#a3e635)!important;color:#0c2030!important;box-shadow:0 6px 18px rgba(34,211,238,.32)!important}
+
+  /* verdict thumbs */
+  .thumb{background:var(--bg2);border:1px solid var(--line);color:var(--mut);border-radius:10px;padding:7px 12px;font-size:15px;font-weight:800;cursor:pointer}
+  .thumb.up.on{background:var(--hop);border-color:var(--hop);color:#0c2030}
+  .thumb.down.on{background:var(--red);border-color:var(--red);color:#fff}
+  .verdict-lbl{font-size:12px;color:var(--mut);font-weight:700;align-self:center}
+
+  /* food list */
+  .food-row{display:flex;gap:10px;align-items:center;padding:11px 0;border-bottom:1px solid var(--line);text-decoration:none;color:inherit}
+  .food-row:last-child{border-bottom:0}
+  .food-row .fi{font-size:20px;flex:none}
+  .food-row .fb{flex:1;min-width:0}
+  .food-row .fb b{font-size:14.5px}
+  .food-row .fb .sub{font-size:12.5px;color:var(--mut)}
+  .food-row .go{color:var(--cyan);font-weight:800;font-size:13px;flex:none}
 </style>
 </head>
 <body>
@@ -222,6 +254,9 @@
 <main class="wrap">
   <!-- VENUES -->
   <section class="view active" id="view-venues">
+    <div class="card map-card"><div id="map"></div></div>
+    <div class="map-note">📍 Pins are approximate — tap a pin, then "Open in Maps" for exact navigation.</div>
+    <button class="btn hungry-btn" id="hungryBtn" style="margin-bottom:12px">🍴 I'm hungry — find food near me</button>
     <div class="card tight">
       <div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:8px">
         <b style="font-size:15px">Your progress</b>
@@ -335,6 +370,19 @@
   <button data-tab="stats"><span class="ic">📊</span>Stats</button>
 </nav>
 
+<!-- Hungry modal -->
+<div class="modal-bg" id="hungryModal">
+  <div class="modal">
+    <div class="grip"></div>
+    <h2>🍴 Hungry?</h2>
+    <p style="color:var(--mut);font-size:13px;margin-top:0">Find the closest food using your phone's location, or head for a known spot on the mile.</p>
+    <button class="btn hungry-btn" id="foodNearBtn">📍 Food near me right now</button>
+    <div class="sec-title" style="margin-top:16px">🍔 Known food on the mile</div>
+    <div id="foodList"></div>
+    <button class="btn sec" id="closeHungry" style="margin-top:12px">Close</button>
+  </div>
+</div>
+
 <!-- Crew modal -->
 <div class="modal-bg" id="crewModal">
   <div class="modal">
@@ -355,34 +403,41 @@
 // Ordered as a walk FROM London Bridge (Tower Bridge Rd end) heading SOUTH to
 // South Bermondsey. Druid St → Enid St → Dockley Rd → Verney/Almond Rd → Fourpure.
 const VENUES = [
-  {id:"southwark", name:"Southwark Brewing Co.", area:"Druid St · nearest London Bridge", addr:"46 Druid St, SE1 2EZ", tag:"Traditional London ales",
+  {id:"southwark", name:"Southwark Brewing Co.", area:"Druid St · nearest London Bridge", addr:"46 Druid St, SE1 2EZ", tag:"Traditional London ales", lat:51.4983, lng:-0.0757,
    known:"Big railway-arch taproom — cask & keg classics. A friendly, easy first stop at the Tower Bridge Road end."},
-  {id:"hiver", name:"Hiver Beers — The Taproom", area:"Maltby St · Tower Bridge Rd end", addr:"Arch 56, Stanworth St, SE1 3NY", tag:"Honey beers",
+  {id:"hiver", name:"Hiver Beers — The Taproom", area:"Maltby St · Tower Bridge Rd end", addr:"Arch 56, Stanworth St, SE1 3NY", tag:"Honey beers", lat:51.4980, lng:-0.0773,
    known:"At the top of Maltby Street Market, ~10 min from London Bridge. Beers brewed with British honey — the honey ale is the signature."},
-  {id:"kanpai", name:"Kanpai London", area:"Druid St", addr:"48 Druid St, SE1 2HH", tag:"Sake brewery",
+  {id:"kanpai", name:"Kanpai London", area:"Druid St", addr:"48 Druid St, SE1 2HH", tag:"Sake brewery", lat:51.4982, lng:-0.0754,
    known:"The UK's first sake brewery. Try something different before the beer kicks in."},
-  {id:"barrel", name:"The Barrel Project (Cloudwater)", area:"Druid St", addr:"80 Druid St, SE1 2HQ", tag:"Barrel-aged & huge keg list",
+  {id:"barrel", name:"The Barrel Project (Cloudwater)", area:"Druid St", addr:"80 Druid St, SE1 2HQ", tag:"Barrel-aged & huge keg list", lat:51.4976, lng:-0.0736,
    known:"Cloudwater's cellar door — enormous draught range, hazy IPAs and barrel-aged stuff."},
-  {id:"fabal", name:"FABAL Beerhall", area:"Druid St", addr:"88 Druid St, SE1 2HQ", tag:"English craft lager",
+  {id:"fabal", name:"FABAL Beerhall", area:"Druid St", addr:"88 Druid St, SE1 2HQ", tag:"English craft lager", lat:51.4974, lng:-0.0731,
    known:"Spacious beer hall pouring crisp English-made lager. Good room for a big group."},
-  {id:"anspach", name:"Anspach & Hobday — The Arch House", area:"Druid St", addr:"118 Druid St, SE1 2HH", tag:"Famous Porter & table beer",
+  {id:"anspach", name:"Anspach & Hobday — The Arch House", area:"Druid St", addr:"118 Druid St, SE1 2HH", tag:"Famous Porter & table beer", lat:51.4969, lng:-0.0713,
    known:"Home of 'The Porter' and a lovely table beer, plus guest taps and sours. Marks the south end of Druid St."},
-  {id:"affinity", name:"Affinity Brewing", area:"Enid St", addr:"Enid St arches, SE16", tag:"Pales, IPAs & sours",
+  {id:"affinity", name:"Affinity Brewing", area:"Enid St", addr:"Enid St arches, SE16", tag:"Pales, IPAs & sours", lat:51.4951, lng:-0.0669,
    known:"Hop-forward pales and IPAs plus the odd fruited sour, as you swing onto Enid Street."},
-  {id:"bbno", name:"Brew By Numbers (BBNo)", area:"Enid St", addr:"79 Enid St, SE16 3RA", tag:"Saisons, IPAs, mixed-ferm",
+  {id:"bbno", name:"Brew By Numbers (BBNo)", area:"Enid St", addr:"79 Enid St, SE16 3RA", tag:"Saisons, IPAs, mixed-ferm", lat:51.4948, lng:-0.0662,
    known:"Everything's numbered — saisons, hoppy keg and a barrel/mixed-fermentation programme."},
-  {id:"mashpaddle", name:"Mash Paddle Brewery", area:"Enid St", addr:"Enid St arches, SE16", tag:"Community brewery",
+  {id:"mashpaddle", name:"Mash Paddle Brewery", area:"Enid St", addr:"Enid St arches, SE16", tag:"Community brewery", lat:51.4946, lng:-0.0658,
    known:"Pales, lagers, stouts and ciders from a friendly local crew."},
-  {id:"gosnells", name:"Gosnells of London", area:"Enid St", addr:"85 Enid St, SE16 3RA", tag:"Mead bar",
+  {id:"gosnells", name:"Gosnells of London", area:"Enid St", addr:"85 Enid St, SE16 3RA", tag:"Mead bar", lat:51.4947, lng:-0.0661,
    known:"London's mead specialists — light, sparkling 'sesh mead'. A fun palate-cleanser."},
-  {id:"kernel", name:"The Kernel Brewery", area:"Dockley Rd · Sat only, opens early", addr:"Arch 11, Dockley Rd Ind. Est., SE16 3SF", tag:"Legendary stouts & pales",
+  {id:"kernel", name:"The Kernel Brewery", area:"Dockley Rd · Sat only, opens early", addr:"Arch 11, Dockley Rd Ind. Est., SE16 3SF", tag:"Legendary stouts & pales", lat:51.4926, lng:-0.0646,
    known:"Saturdays only and closes earliest — hit it before it shuts. Iconic Export India Porter, Table Beer and hoppy pales."},
-  {id:"spartan", name:"Spartan Brewery", area:"Verney Rd · south end", addr:"Verney Rd arches, SE16", tag:"Pales & IPAs",
+  {id:"spartan", name:"Spartan Brewery", area:"Verney Rd · south end", addr:"Verney Rd arches, SE16", tag:"Pales & IPAs", lat:51.4896, lng:-0.0586,
    known:"Reliable modern pales and IPAs as you head into the southern stretch."},
-  {id:"partizan", name:"Partizan Brewing", area:"Almond Rd · south end", addr:"8 Almond Rd, SE16 3LR", tag:"Saisons & pales",
+  {id:"partizan", name:"Partizan Brewing", area:"Almond Rd · south end", addr:"8 Almond Rd, SE16 3LR", tag:"Saisons & pales", lat:51.4906, lng:-0.0601,
    known:"Elegant saisons and pales — and the prettiest labels on the mile."},
-  {id:"fourpure", name:"Fourpure Brewing Co.", area:"Rotherhithe New Rd · the finish", addr:"22 Bermondsey Trading Est., Rotherhithe New Rd, SE16 3LL", tag:"Big modern taproom",
+  {id:"fourpure", name:"Fourpure Brewing Co.", area:"Rotherhithe New Rd · the finish", addr:"22 Bermondsey Trading Est., Rotherhithe New Rd, SE16 3LL", tag:"Big modern taproom", lat:51.4876, lng:-0.0561,
    known:"The traditional finish line by South Bermondsey — large, lively taproom. Tick it off and toast the day. 🎉"}
+];
+
+// Known food stops on/near the mile (for the "I'm hungry" finder).
+const FOOD = [
+  {name:"Maltby Street Market (Ropewalk)", sub:"Weekend street food — near the Druid St / Tower Bridge end", q:"Maltby Street Market Ropewalk London"},
+  {name:"Spa Terminus", sub:"Saturday-morning food & produce near The Kernel", q:"Spa Terminus Bermondsey"},
+  {name:"Taproom kitchens & food trucks", sub:"BBNo, Fourpure & others usually have food on site", q:"Bermondsey Beer Mile street food"}
 ];
 
 const STYLES = ["Pale Ale","IPA","Hazy/NEIPA","DIPA","Lager","Pilsner","Stout","Porter","Sour","Saison","Table Beer","Bitter","Mead","Sake","Cider","Other"];
@@ -418,7 +473,7 @@ const ROULETTE = STYLES.filter(s=>!["Other"].includes(s));
 
 /* ---------------- State ---------------- */
 const KEY="bbm_state_v1";
-const def={players:[],visited:{},logs:[],bingo:{},photos:{},newColor:COLORS[0]};
+const def={players:[],visited:{},logs:[],bingo:{},photos:{},verdicts:{},newColor:COLORS[0]};
 let S=load();
 function load(){try{return Object.assign(structuredClone(def),JSON.parse(localStorage.getItem(KEY))||{})}catch(e){return structuredClone(def)}}
 function save(){localStorage.setItem(KEY,JSON.stringify(S))}
@@ -481,19 +536,28 @@ function renderVenues(){
   const list=$("#venueList");
   list.innerHTML=VENUES.map((v,i)=>{
     const done=!!S.visited[v.id];
+    const verdict=S.verdicts[v.id];
     const q=encodeURIComponent(v.name+", Bermondsey, London");
+    const untappd="https://untappd.com/search?q="+encodeURIComponent(v.name);
     return `<div class="card venue ${done?'done':''}">
       <div class="v-num">${done?'✓':i+1}</div>
       <div class="v-body">
         <b>${esc(v.name)}</b>
         <div class="area">🚶 ${esc(v.area)}</div>
         <div class="meta">📍 ${esc(v.addr)}</div>
-        <span class="pill amber">${esc(v.tag)}</span>
+        <span class="pill amber">⭐ ${esc(v.tag)}</span>
         <div class="known" style="margin-top:8px">${esc(v.known)}</div>
         <div class="v-actions">
-          <a class="btn sec sm" target="_blank" rel="noopener" href="https://www.google.com/maps/search/?api=1&query=${q}">🗺️ Maps</a>
           <button class="btn ${done?'ghost':'sec'} sm" data-tick="${v.id}">${done?'↩︎ Untick':'✓ Been here'}</button>
-          <button class="btn sec sm" data-loghere="${v.id}">📓 Log a drink</button>
+          <a class="btn sec sm" target="_blank" rel="noopener" href="https://www.google.com/maps/search/?api=1&query=${q}">🗺️ Maps</a>
+          <a class="btn sec sm" target="_blank" rel="noopener" href="${untappd}">🍺 Tap list</a>
+          <button class="btn sec sm" data-loghere="${v.id}">📓 Log</button>
+        </div>
+        <div class="v-actions" style="margin-top:7px">
+          <span class="verdict-lbl">Verdict:</span>
+          <button class="thumb up ${verdict==='up'?'on':''}" data-vote="up" data-vid="${v.id}">👍</button>
+          <button class="thumb down ${verdict==='down'?'on':''}" data-vote="down" data-vid="${v.id}">👎</button>
+          <a class="btn sec sm" target="_blank" rel="noopener" href="https://www.google.com/maps/search/?api=1&query=${q}">★ Review on Google</a>
         </div>
       </div></div>`;
   }).join("");
@@ -501,9 +565,14 @@ function renderVenues(){
     const id=b.dataset.tick;S.visited[id]?delete S.visited[id]:S.visited[id]=Date.now();save();renderVenues()});
   $$("#venueList [data-loghere]").forEach(b=>b.onclick=()=>{
     gotoLog(b.dataset.loghere)});
+  $$("#venueList [data-vote]").forEach(b=>b.onclick=()=>{
+    const id=b.dataset.vid,v=b.dataset.vote;
+    if(S.verdicts[id]===v)delete S.verdicts[id];else S.verdicts[id]=v;
+    save();renderVenues();});
   const done=Object.keys(S.visited).length,total=VENUES.length;
   $("#progBar").style.width=(total?done/total*100:0)+"%";
   $("#progTxt").textContent=`${done} / ${total}`;
+  refreshMap();
 }
 function gotoLog(venueId){
   $$("nav.tabs button").forEach(x=>x.classList.toggle("active",x.dataset.tab==="log"));
@@ -617,8 +686,60 @@ function renderStats(){
 }
 $("#resetDay").onclick=()=>{
   if(!confirm("Reset today's logs and venue ticks? Your crew stays. This can't be undone."))return;
-  S.logs=[];S.visited={};S.bingo={};S.photos={};save();
+  S.logs=[];S.visited={};S.bingo={};S.photos={};S.verdicts={};save();
   renderVenues();renderLogList();renderStats();renderBingo();renderPhotos();
+};
+
+/* ---------------- Map ---------------- */
+let MAP=null, mapMarkers=[];
+function initMap(){
+  const el=document.getElementById("map");
+  if(!el)return;
+  if(typeof L==="undefined"){
+    el.outerHTML='<div class="map-fallback">🗺️ The map needs an internet connection to load. No signal? Use the list below — every venue has a Maps link.</div>';
+    return;
+  }
+  MAP=L.map(el,{scrollWheelZoom:false}).setView([51.4945,-0.066],14);
+  L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png",{maxZoom:19,attribution:"© OpenStreetMap"}).addTo(MAP);
+  L.polyline(VENUES.map(v=>[v.lat,v.lng]),{color:"#ff4d8d",weight:3,opacity:.75,dashArray:"6 7"}).addTo(MAP);
+  refreshMap();
+  MAP.fitBounds(VENUES.map(v=>[v.lat,v.lng]),{padding:[28,28]});
+  setTimeout(()=>MAP.invalidateSize(),250);
+}
+function refreshMap(){
+  if(!MAP)return;
+  mapMarkers.forEach(m=>MAP.removeLayer(m));mapMarkers=[];
+  VENUES.forEach((v,i)=>{
+    const done=!!S.visited[v.id];
+    const icon=L.divIcon({className:"",html:`<div class="pin ${done?'done':''}"><span>${i+1}</span></div>`,iconSize:[28,28],iconAnchor:[14,28],popupAnchor:[0,-26]});
+    const q=encodeURIComponent(v.name+", Bermondsey, London");
+    const m=L.marker([v.lat,v.lng],{icon}).addTo(MAP).bindPopup(
+      `<b>${i+1}. ${esc(v.name)}</b><br><span style="color:#5a4b7a;font-size:12px">${esc(v.tag)}</span>
+       <div class="pop-actions">
+         <a href="https://www.google.com/maps/search/?api=1&query=${q}" target="_blank" rel="noopener">Open in Maps</a>
+         <a href="https://untappd.com/search?q=${encodeURIComponent(v.name)}" target="_blank" rel="noopener">Tap list</a>
+       </div>`);
+    mapMarkers.push(m);
+  });
+}
+
+/* ---------------- I'm hungry ---------------- */
+function openMapsFood(lat,lng){window.open(`https://www.google.com/maps/search/food/@${lat},${lng},16z`,"_blank","noopener")}
+function renderFood(){
+  $("#foodList").innerHTML=FOOD.map(f=>`<a class="food-row" target="_blank" rel="noopener" href="https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(f.q)}">
+    <span class="fi">🍴</span><div class="fb"><b>${esc(f.name)}</b><div class="sub">${esc(f.sub)}</div></div><span class="go">Maps ›</span></a>`).join("");
+}
+$("#hungryBtn").onclick=()=>{renderFood();$("#hungryModal").classList.add("open")};
+$("#closeHungry").onclick=()=>$("#hungryModal").classList.remove("open");
+$("#hungryModal").onclick=e=>{if(e.target===$("#hungryModal"))$("#hungryModal").classList.remove("open")};
+$("#foodNearBtn").onclick=()=>{
+  const b=$("#foodNearBtn"),t=b.textContent;
+  if(!navigator.geolocation){openMapsFood(51.4945,-0.066);return}
+  b.textContent="📍 Locating you…";
+  navigator.geolocation.getCurrentPosition(
+    p=>{b.textContent=t;openMapsFood(p.coords.latitude,p.coords.longitude)},
+    ()=>{b.textContent=t;openMapsFood(51.4945,-0.066)},
+    {enableHighAccuracy:true,timeout:8000,maximumAge:60000});
 };
 
 /* ---------------- Games ---------------- */
@@ -705,6 +826,8 @@ function renderPhotos(){
     navigator.serviceWorker.register("./sw.js").catch(()=>{});
   }
 })();
+// Leaflet loads deferred, so init the map once everything is ready.
+window.addEventListener("load",initMap);
 </script>
 </body>
 </html>
