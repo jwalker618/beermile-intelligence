@@ -13,6 +13,8 @@
 <link rel="apple-touch-icon" href="./icon.svg" />
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" crossorigin="" />
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" crossorigin="" defer></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.5/firebase-app-compat.js" defer></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.5/firebase-database-compat.js" defer></script>
 <style>
   :root{
     --bg:#15121f; --bg2:#1e1a30; --card:#221d38; --card2:#2c2650;
@@ -240,6 +242,15 @@
   .food-row .fb b{font-size:14.5px}
   .food-row .fb .sub{font-size:12.5px;color:var(--mut)}
   .food-row .go{color:var(--cyan);font-weight:800;font-size:13px;flex:none}
+
+  /* group-sync card */
+  .sync-card{background:linear-gradient(135deg,rgba(34,211,238,.16),rgba(177,108,255,.16));border:1px solid var(--line);border-radius:13px;padding:12px;margin-bottom:14px}
+  .sync-card.on{background:linear-gradient(135deg,rgba(163,230,53,.18),rgba(34,211,238,.14));border-color:#4d7a2e}
+  .sync-card.off{background:var(--card2)}
+  .sync-card b{font-size:14px}
+  .sync-card .sub{font-size:12.5px;color:var(--mut);margin-top:4px}
+  .sync-card .rcode{background:rgba(0,0,0,.28);border-radius:6px;padding:1px 7px;letter-spacing:1px;font-family:ui-monospace,Menlo,monospace}
+  .sync-card .row input{text-transform:uppercase;letter-spacing:1px;font-weight:700}
 </style>
 </head>
 <body>
@@ -387,10 +398,11 @@
 <div class="modal-bg" id="crewModal">
   <div class="modal">
     <div class="grip"></div>
+    <div id="syncBox"></div>
     <h2>👥 Your crew</h2>
     <p style="color:var(--mut);font-size:13px;margin-top:0">Add everyone in the group. Used for the logger, leaderboard & "whose round" spinner.</p>
     <div id="playerList"></div>
-    <label class="fld" style="margin-top:14px"><span class="lbl">Add a name</span><input id="newName" placeholder="e.g. Sam" autocomplete="off" maxlength="16"/></label>
+    <label class="fld" style="margin-top:14px"><span class="lbl">Add a name</span><input id="newName" placeholder="e.g. Sam (or a nickname)" autocomplete="off" maxlength="30"/></label>
     <span class="lbl" style="display:block;font-size:12px;font-weight:800;color:var(--mut);text-transform:uppercase;letter-spacing:.4px;margin-bottom:5px">Colour</span>
     <div class="swatches" id="swatches"></div>
     <button class="btn" id="addPlayer">➕ Add to crew</button>
@@ -485,6 +497,25 @@ function playerById(id){return S.players.find(p=>p.id===id)}
 function units(abv,ml){return (Number(abv)||0)*ml/1000}
 function venueName(id){return (VENUES.find(v=>v.id===id)||{}).name||"—"}
 
+/* ---------------- Group sync (Firebase) ----------------
+   PASTE YOUR FIREBASE CONFIG BELOW to switch on shared, live data for the
+   whole crew. Until you do, the app works exactly as before (saved on this
+   phone only). Step-by-step setup is in the README → "Group sync setup".   */
+const FIREBASE_CONFIG = {
+  // apiKey: "…",
+  // authDomain: "your-project.firebaseapp.com",
+  // databaseURL: "https://your-project-default-rtdb.europe-west1.firebasedatabase.app",
+  // projectId: "your-project",
+  // appId: "…"
+};
+const SYNC_AVAILABLE = !!(FIREBASE_CONFIG && FIREBASE_CONFIG.databaseURL);
+const ROOM_KEY = "bbm_room";
+let db=null, ROOM=null, roomRef=null;
+function inRoom(){return !!(db && ROOM)}
+function fbRef(path){return db.ref("rooms/"+ROOM+(path?("/"+path):""))}
+function fbSet(path,val){ if(inRoom()) fbRef(path).set(val).catch(()=>{}); }
+function fbRemove(path){ if(inRoom()) fbRef(path).remove().catch(()=>{}); }
+
 /* ---------------- Tabs ---------------- */
 $$("nav.tabs button").forEach(b=>b.onclick=()=>{
   $$("nav.tabs button").forEach(x=>x.classList.toggle("active",x===b));
@@ -498,7 +529,7 @@ const crewModal=$("#crewModal");
 $("#crewBtn").onclick=openCrew;
 $("#closeCrew").onclick=()=>crewModal.classList.remove("open");
 crewModal.onclick=e=>{if(e.target===crewModal)crewModal.classList.remove("open")};
-function openCrew(){renderPlayerList();renderSwatches();crewModal.classList.add("open")}
+function openCrew(){renderSyncUI();renderPlayerList();renderSwatches();crewModal.classList.add("open")}
 function renderSwatches(){
   $("#swatches").innerHTML=COLORS.map(c=>`<div class="sw ${c===S.newColor?'on':''}" style="background:${c}" data-c="${c}"></div>`).join("");
   $$("#swatches .sw").forEach(el=>el.onclick=()=>{S.newColor=el.dataset.c;save();renderSwatches()});
@@ -511,13 +542,16 @@ function renderPlayerList(){
     <span class="nm">${esc(p.name)}</span>
     <button class="x" data-del="${p.id}" aria-label="remove">✕</button></div>`).join("");
   $$("#playerList [data-del]").forEach(b=>b.onclick=()=>{
+    fbRemove("players/"+b.dataset.del);
     S.players=S.players.filter(p=>p.id!==b.dataset.del);save();renderPlayerList();syncCrew()});
 }
 $("#addPlayer").onclick=()=>{
   const n=$("#newName").value.trim();if(!n)return;
   const used=S.players.map(p=>p.emoji);
   const emoji=EMOJIS.find(e=>!used.includes(e))||EMOJIS[S.players.length%EMOJIS.length];
-  S.players.push({id:uid(),name:n,color:S.newColor,emoji});
+  const player={id:uid(),name:n,color:S.newColor,emoji,ts:Date.now()};
+  S.players.push(player);
+  fbSet("players/"+player.id,{name:player.name,color:player.color,emoji:player.emoji,ts:player.ts});
   $("#newName").value="";
   const ci=(COLORS.indexOf(S.newColor)+1)%COLORS.length;S.newColor=COLORS[ci];
   save();renderPlayerList();renderSwatches();syncCrew();
@@ -562,12 +596,16 @@ function renderVenues(){
       </div></div>`;
   }).join("");
   $$("#venueList [data-tick]").forEach(b=>b.onclick=()=>{
-    const id=b.dataset.tick;S.visited[id]?delete S.visited[id]:S.visited[id]=Date.now();save();renderVenues()});
+    const id=b.dataset.tick;
+    if(S.visited[id]){delete S.visited[id];fbRemove("visited/"+id);}
+    else{S.visited[id]=Date.now();fbSet("visited/"+id,S.visited[id]);}
+    save();renderVenues();});
   $$("#venueList [data-loghere]").forEach(b=>b.onclick=()=>{
     gotoLog(b.dataset.loghere)});
   $$("#venueList [data-vote]").forEach(b=>b.onclick=()=>{
     const id=b.dataset.vid,v=b.dataset.vote;
-    if(S.verdicts[id]===v)delete S.verdicts[id];else S.verdicts[id]=v;
+    if(S.verdicts[id]===v){delete S.verdicts[id];fbRemove("verdicts/"+id);}
+    else{S.verdicts[id]=v;fbSet("verdicts/"+id,v);}
     save();renderVenues();});
   const done=Object.keys(S.visited).length,total=VENUES.length;
   $("#progBar").style.width=(total?done/total*100:0)+"%";
@@ -608,7 +646,8 @@ $("#logSave").onclick=()=>{
     beer:$("#logBeer").value.trim(),style:logSel.style||"",abv:parseFloat($("#logAbv").value)||0,
     sizeId:size.id,ml:size.ml,rating:logSel.rating};
   S.logs.unshift(log);
-  if(!S.visited[log.venueId])S.visited[log.venueId]=Date.now();
+  fbSet("logs/"+log.id,{ts:log.ts,playerId:log.playerId,venueId:log.venueId,beer:log.beer,style:log.style,abv:log.abv,sizeId:log.sizeId,ml:log.ml,rating:log.rating});
+  if(!S.visited[log.venueId]){S.visited[log.venueId]=Date.now();fbSet("visited/"+log.venueId,S.visited[log.venueId]);}
   save();
   // reset light fields
   $("#logBeer").value="";$("#logAbv").value="";logSel.style=null;logSel.rating=0;
@@ -632,7 +671,7 @@ function renderLogList(){
       <div class="l-right"><div class="u">${u.toFixed(1)}u</div>${l.rating?`<div class="st">${"★".repeat(l.rating)}</div>`:""}</div>
       <button class="x" data-dellog="${l.id}">✕</button></div>`;
   }).join("");
-  $$("#logList [data-dellog]").forEach(b=>b.onclick=()=>{S.logs=S.logs.filter(l=>l.id!==b.dataset.dellog);save();renderLogList()});
+  $$("#logList [data-dellog]").forEach(b=>b.onclick=()=>{fbRemove("logs/"+b.dataset.dellog);S.logs=S.logs.filter(l=>l.id!==b.dataset.dellog);save();renderLogList()});
 }
 
 /* ---------------- Stats ---------------- */
@@ -685,8 +724,12 @@ function renderStats(){
   }
 }
 $("#resetDay").onclick=()=>{
-  if(!confirm("Reset today's logs and venue ticks? Your crew stays. This can't be undone."))return;
+  const msg=inRoom()
+    ? `Reset the WHOLE crew's logs, ticks, bingo & verdicts in room ${ROOM}? Everyone's phone will clear. The crew list stays. This can't be undone.`
+    : "Reset today's logs and venue ticks? Your crew stays. This can't be undone.";
+  if(!confirm(msg))return;
   S.logs=[];S.visited={};S.bingo={};S.photos={};S.verdicts={};save();
+  if(inRoom()){["logs","visited","bingo","photos","verdicts"].forEach(k=>fbRemove(k));}
   renderVenues();renderLogList();renderStats();renderBingo();renderPhotos();
 };
 
@@ -800,11 +843,12 @@ $("#rouletteBtn").onclick=()=>{
 function renderBingo(){
   const g=$("#bingoGrid");
   g.innerHTML=BINGO.map((t,i)=>`<div class="cell ${S.bingo[i]?'on':''}" data-b="${i}">${t}</div>`).join("");
-  $$("#bingoGrid .cell").forEach(c=>c.onclick=()=>{const i=c.dataset.b;S.bingo[i]?delete S.bingo[i]:S.bingo[i]=1;save();renderBingo()});
+  $$("#bingoGrid .cell").forEach(c=>c.onclick=()=>{const i=c.dataset.b;
+    if(S.bingo[i]){delete S.bingo[i];fbRemove("bingo/"+i);}else{S.bingo[i]=1;fbSet("bingo/"+i,1);}save();renderBingo()});
   const n=Object.keys(S.bingo).length;
   $("#bingoNote").textContent=n>=9?"🎉 FULL HOUSE! Legend.":`${n} / 9 ticked — get a line for bragging rights.`;
 }
-$("#bingoReset").onclick=()=>{S.bingo={};save();renderBingo()};
+$("#bingoReset").onclick=()=>{S.bingo={};fbRemove("bingo");save();renderBingo()};
 $("#dareBtn").onclick=()=>{
   const out=$("#dareOut");let t=0;
   const iv=setInterval(()=>{out.textContent=DARES[Math.floor(Math.random()*DARES.length)];
@@ -814,7 +858,84 @@ $("#dareBtn").onclick=()=>{
 function renderPhotos(){
   const el=$("#photoList");
   el.innerHTML=PHOTOS.map((t,i)=>`<div class="chk ${S.photos[i]?'on':''}" data-ph="${i}"><span class="box">✓</span><span class="t">${t}</span></div>`).join("");
-  $$("#photoList .chk").forEach(c=>c.onclick=()=>{const i=c.dataset.ph;S.photos[i]?delete S.photos[i]:S.photos[i]=1;save();renderPhotos()});
+  $$("#photoList .chk").forEach(c=>c.onclick=()=>{const i=c.dataset.ph;
+    if(S.photos[i]){delete S.photos[i];fbRemove("photos/"+i);}else{S.photos[i]=1;fbSet("photos/"+i,1);}save();renderPhotos()});
+}
+
+/* ---------------- Sync: rooms + live updates ---------------- */
+function normRoom(c){return (c||"").trim().toUpperCase().replace(/[^A-Z0-9]/g,"").slice(0,16);}
+function renderAll(){
+  syncCrew();renderVenues();renderLogList();renderStats();renderBingo();renderPhotos();renderPickerReady();
+}
+function initSync(){
+  if(!SYNC_AVAILABLE || typeof firebase==="undefined") return;
+  try{ firebase.initializeApp(FIREBASE_CONFIG); db=firebase.database(); }
+  catch(e){ db=null; return; }
+  const saved=localStorage.getItem(ROOM_KEY);
+  if(saved) joinRoom(saved,true);
+}
+function joinRoom(code,silent){
+  if(!db) return;
+  code=normRoom(code); if(!code) return;
+  if(roomRef) roomRef.off();
+  ROOM=code; localStorage.setItem(ROOM_KEY,code);
+  fbRef("meta/active").set(Date.now()).catch(()=>{});   // make sure the room exists
+  // If the room is brand new, seed it with whatever's already on this phone
+  // (so an existing crew/log carries over instead of being wiped).
+  fbRef("").once("value").then(snap=>{
+    const v=snap.val()||{};
+    if(!(v.players||v.logs)) seedRoom();
+  }).catch(()=>{});
+  roomRef=fbRef("");
+  roomRef.on("value",snap=>applyRemote(snap.val()||{}));
+  if(!silent) renderSyncUI();
+}
+function seedRoom(){
+  S.players.forEach(p=>fbSet("players/"+p.id,{name:p.name,color:p.color,emoji:p.emoji,ts:p.ts||Date.now()}));
+  S.logs.forEach(l=>fbSet("logs/"+l.id,{ts:l.ts,playerId:l.playerId,venueId:l.venueId,beer:l.beer,style:l.style,abv:l.abv,sizeId:l.sizeId,ml:l.ml,rating:l.rating}));
+  Object.entries(S.visited).forEach(([k,val])=>fbSet("visited/"+k,val));
+  Object.keys(S.bingo).forEach(k=>fbSet("bingo/"+k,1));
+  Object.keys(S.photos).forEach(k=>fbSet("photos/"+k,1));
+  Object.entries(S.verdicts).forEach(([k,val])=>fbSet("verdicts/"+k,val));
+}
+function leaveRoom(){
+  if(roomRef){roomRef.off();roomRef=null;}
+  ROOM=null; localStorage.removeItem(ROOM_KEY);
+  renderSyncUI();
+}
+function applyRemote(v){
+  v=v||{};
+  S.players  = Object.entries(v.players||{}).map(([id,p])=>Object.assign({id},p)).sort((a,b)=>(a.ts||0)-(b.ts||0));
+  S.logs     = Object.entries(v.logs||{}).map(([id,l])=>Object.assign({},l,{id})).sort((a,b)=>b.ts-a.ts);
+  S.visited  = v.visited||{};
+  S.bingo    = v.bingo||{};
+  S.photos   = v.photos||{};
+  S.verdicts = v.verdicts||{};
+  save();           // keep a local cache for offline / reloads
+  renderAll();
+  renderSyncUI();
+}
+function renderSyncUI(){
+  const el=document.getElementById("syncBox"); if(!el) return;
+  if(!SYNC_AVAILABLE){
+    el.innerHTML=`<div class="sync-card off"><b>🔌 Shared sync not switched on yet</b>
+      <div class="sub">Add your Firebase keys to share one live session across the whole crew's phones. See the README → "Group sync setup".</div></div>`;
+    return;
+  }
+  if(inRoom()){
+    el.innerHTML=`<div class="sync-card on"><b>🟢 Synced — room <span class="rcode">${esc(ROOM)}</span></b>
+      <div class="sub">Everyone on this code shares one live log, crew & leaderboard. Tell your friends to join <b>${esc(ROOM)}</b>.</div>
+      <button class="btn sec sm" id="leaveRoomBtn" style="margin-top:9px">Leave room</button></div>`;
+    document.getElementById("leaveRoomBtn").onclick=leaveRoom;
+  } else {
+    el.innerHTML=`<div class="sync-card"><b>📡 Share with the crew</b>
+      <div class="sub">Pick one code and everyone enters the same one to share live data.</div>
+      <div class="row" style="margin-top:9px"><input id="roomInput" placeholder="e.g. BEERMILE" autocomplete="off" maxlength="16" style="text-transform:uppercase"/>
+      <button class="btn sm" id="joinRoomBtn" style="width:auto">Join</button></div></div>`;
+    const go=()=>{ if(normRoom(document.getElementById("roomInput").value)) joinRoom(document.getElementById("roomInput").value); };
+    document.getElementById("joinRoomBtn").onclick=go;
+    document.getElementById("roomInput").addEventListener("keydown",e=>{if(e.key==="Enter")go();});
+  }
 }
 
 /* ---------------- Boot ---------------- */
@@ -826,8 +947,8 @@ function renderPhotos(){
     navigator.serviceWorker.register("./sw.js").catch(()=>{});
   }
 })();
-// Leaflet loads deferred, so init the map once everything is ready.
-window.addEventListener("load",initMap);
+// Leaflet & Firebase load deferred, so start them once everything is ready.
+window.addEventListener("load",()=>{ initSync(); initMap(); });
 </script>
 </body>
 </html>
