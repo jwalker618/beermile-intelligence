@@ -502,12 +502,24 @@ function venueName(id){return (VENUES.find(v=>v.id===id)||{}).name||"—"}
    whole crew. Until you do, the app works exactly as before (saved on this
    phone only). Step-by-step setup is in the README → "Group sync setup".   */
 const FIREBASE_CONFIG = {
-  // apiKey: "…",
-  // authDomain: "your-project.firebaseapp.com",
-  // databaseURL: "https://your-project-default-rtdb.europe-west1.firebasedatabase.app",
-  // projectId: "your-project",
-  // appId: "…"
+  // Import the functions you need from the SDKs you need
+import { initializeApp } from "firebase/app";
+// TODO: Add SDKs for Firebase products that you want to use
+// https://firebase.google.com/docs/web/setup#available-libraries
+
+// Your web app's Firebase configuration
+const firebaseConfig = {
+  apiKey: "AIzaSyBgAc1Cc4zlqtlu52kk_Y4fBU3vXi7zYhs",
+  authDomain: "beermile-intelligence.firebaseapp.com",
+  databaseURL: "https://beermile-intelligence-default-rtdb.europe-west1.firebasedatabase.app",
+  projectId: "beermile-intelligence",
+  storageBucket: "beermile-intelligence.firebasestorage.app",
+  messagingSenderId: "125340547152",
+  appId: "1:125340547152:web:c59094eacc9ec90999b955"
 };
+
+// Initialize Firebase
+const app = initializeApp(firebaseConfig);
 const SYNC_AVAILABLE = !!(FIREBASE_CONFIG && FIREBASE_CONFIG.databaseURL);
 const ROOM_KEY = "bbm_room";
 let db=null, ROOM=null, roomRef=null;
