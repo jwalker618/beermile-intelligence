@@ -247,6 +247,9 @@
   .sync-card{background:linear-gradient(135deg,rgba(34,211,238,.16),rgba(177,108,255,.16));border:1px solid var(--line);border-radius:13px;padding:12px;margin-bottom:14px}
   .sync-card.on{background:linear-gradient(135deg,rgba(163,230,53,.18),rgba(34,211,238,.14));border-color:#4d7a2e}
   .sync-card.off{background:var(--card2)}
+  .sync-card.err{background:linear-gradient(135deg,rgba(251,91,63,.20),rgba(0,0,0,.12));border-color:#7a3327}
+  .sync-card pre.rules{background:rgba(0,0,0,.35);border:1px solid var(--line);border-radius:8px;padding:9px 10px;margin:8px 0;font-size:11px;line-height:1.4;white-space:pre-wrap;word-break:break-word;color:var(--gold);font-family:ui-monospace,Menlo,monospace}
+  .sync-card code{background:rgba(0,0,0,.3);border-radius:5px;padding:1px 5px;font-size:11.5px}
   .sync-card b{font-size:14px}
   .sync-card .sub{font-size:12.5px;color:var(--mut);margin-top:4px}
   .sync-card .rcode{background:rgba(0,0,0,.28);border-radius:6px;padding:1px 7px;letter-spacing:1px;font-family:ui-monospace,Menlo,monospace}
@@ -512,7 +515,7 @@ const FIREBASE_CONFIG = {
 };
 const SYNC_AVAILABLE = !!(FIREBASE_CONFIG && FIREBASE_CONFIG.databaseURL);
 const ROOM_KEY = "bbm_room";
-let db=null, ROOM=null, roomRef=null;
+let db=null, ROOM=null, roomRef=null, fbConnected=false, syncErr="";
 function inRoom(){return !!(db && ROOM)}
 function fbRef(path){return db.ref("rooms/"+ROOM+(path?("/"+path):""))}
 function fbSet(path,val){ if(inRoom()) fbRef(path).set(val).catch(()=>{}); }
@@ -870,27 +873,29 @@ function renderAll(){
   syncCrew();renderVenues();renderLogList();renderStats();renderBingo();renderPhotos();renderPickerReady();
 }
 function initSync(){
-  if(!SYNC_AVAILABLE || typeof firebase==="undefined") return;
+  if(!SYNC_AVAILABLE) return;
+  if(typeof firebase==="undefined"){ syncErr="noload"; renderSyncUI(); return; }
   try{ firebase.initializeApp(FIREBASE_CONFIG); db=firebase.database(); }
-  catch(e){ db=null; return; }
+  catch(e){ db=null; syncErr="noinit"; renderSyncUI(); return; }
+  db.ref(".info/connected").on("value",s=>{ fbConnected=(s.val()===true); renderSyncUI(); });
   const saved=localStorage.getItem(ROOM_KEY);
   if(saved) joinRoom(saved,true);
 }
 function joinRoom(code,silent){
-  if(!db) return;
+  if(!db){ syncErr= (typeof firebase==="undefined")?"noload":"noinit"; renderSyncUI(); return; }
   code=normRoom(code); if(!code) return;
   if(roomRef) roomRef.off();
   ROOM=code; localStorage.setItem(ROOM_KEY,code);
-  fbRef("meta/active").set(Date.now()).catch(()=>{});   // make sure the room exists
-  // If the room is brand new, seed it with whatever's already on this phone
-  // (so an existing crew/log carries over instead of being wiped).
-  fbRef("").once("value").then(snap=>{
-    const v=snap.val()||{};
-    if(!(v.players||v.logs)) seedRoom();
-  }).catch(()=>{});
+  syncErr="connecting"; renderSyncUI();
   roomRef=fbRef("");
-  roomRef.on("value",snap=>applyRemote(snap.val()||{}));
-  if(!silent) renderSyncUI();
+  roomRef.on("value",
+    snap=>{ syncErr="ok"; const v=snap.val()||{}; if(!(v.players||v.logs)) seedRoom(); applyRemote(v); },
+    err=>{ syncErr=(err&&err.code==="PERMISSION_DENIED")?"denied":"error"; renderSyncUI(); }
+  );
+  // write-test so we also catch write-denied (read can pass while write fails)
+  fbRef("meta/active").set(Date.now()).catch(err=>{
+    if(err&&err.code==="PERMISSION_DENIED"){ syncErr="denied"; renderSyncUI(); }
+  });
 }
 function seedRoom(){
   S.players.forEach(p=>fbSet("players/"+p.id,{name:p.name,color:p.color,emoji:p.emoji,ts:p.ts||Date.now()}));
@@ -902,7 +907,7 @@ function seedRoom(){
 }
 function leaveRoom(){
   if(roomRef){roomRef.off();roomRef=null;}
-  ROOM=null; localStorage.removeItem(ROOM_KEY);
+  ROOM=null; syncErr=""; localStorage.removeItem(ROOM_KEY);
   renderSyncUI();
 }
 function applyRemote(v){
@@ -917,18 +922,44 @@ function applyRemote(v){
   renderAll();
   renderSyncUI();
 }
+const RULES_SNIPPET='{ "rules": { "rooms": { "$room": { ".read": true, ".write": true } } } }';
 function renderSyncUI(){
   const el=document.getElementById("syncBox"); if(!el) return;
+  const bindLeave=()=>{const b=document.getElementById("leaveRoomBtn"); if(b) b.onclick=leaveRoom;};
   if(!SYNC_AVAILABLE){
     el.innerHTML=`<div class="sync-card off"><b>🔌 Shared sync not switched on yet</b>
       <div class="sub">Add your Firebase keys to share one live session across the whole crew's phones. See the README → "Group sync setup".</div></div>`;
     return;
   }
+  // Connection / config problems (shown whether or not a room is joined)
+  if(syncErr==="noload"){
+    el.innerHTML=`<div class="sync-card err"><b>📡 Can't reach Firebase</b>
+      <div class="sub">The Firebase library didn't load — usually no internet right now, or an ad/script blocker. Reconnect and reopen the app.</div></div>`;
+    return;
+  }
+  if(syncErr==="noinit"){
+    el.innerHTML=`<div class="sync-card err"><b>⚠️ Firebase config problem</b>
+      <div class="sub">Firebase couldn't initialise with the keys in the app. Double-check the <code>FIREBASE_CONFIG</code> values (especially <code>databaseURL</code>).</div></div>`;
+    return;
+  }
   if(inRoom()){
-    el.innerHTML=`<div class="sync-card on"><b>🟢 Synced — room <span class="rcode">${esc(ROOM)}</span></b>
-      <div class="sub">Everyone on this code shares one live log, crew & leaderboard. Tell your friends to join <b>${esc(ROOM)}</b>.</div>
-      <button class="btn sec sm" id="leaveRoomBtn" style="margin-top:9px">Leave room</button></div>`;
-    document.getElementById("leaveRoomBtn").onclick=leaveRoom;
+    if(syncErr==="denied"){
+      el.innerHTML=`<div class="sync-card err"><b>⛔ Room ${esc(ROOM)} — access blocked</b>
+        <div class="sub">Firebase returned <b>permission denied</b>, so nothing can sync. This almost always means the Realtime Database was created in <b>locked mode</b>. In Firebase → <b>Realtime Database → Rules</b>, paste this and press <b>Publish</b>:</div>
+        <pre class="rules">${esc(RULES_SNIPPET)}</pre>
+        <div class="sub">Then reopen the app. (Also confirm you created a <b>Realtime Database</b>, not Firestore.)</div>
+        <button class="btn sec sm" id="leaveRoomBtn" style="margin-top:9px">Leave room</button></div>`;
+    } else if(syncErr==="error"){
+      el.innerHTML=`<div class="sync-card err"><b>⚠️ Room ${esc(ROOM)} — sync error</b>
+        <div class="sub">Couldn't read the room. Check your connection and that the database URL/region is correct, then reopen.</div>
+        <button class="btn sec sm" id="leaveRoomBtn" style="margin-top:9px">Leave room</button></div>`;
+    } else {
+      const live = (syncErr==="ok"&&fbConnected) ? "🟢 live" : "🟡 connecting…";
+      el.innerHTML=`<div class="sync-card on"><b>✅ Synced — room <span class="rcode">${esc(ROOM)}</span> · ${live}</b>
+        <div class="sub">Everyone on this code shares one live log, crew & leaderboard. Tell your friends to join <b>${esc(ROOM)}</b>.</div>
+        <button class="btn sec sm" id="leaveRoomBtn" style="margin-top:9px">Leave room</button></div>`;
+    }
+    bindLeave();
   } else {
     el.innerHTML=`<div class="sync-card"><b>📡 Share with the crew</b>
       <div class="sub">Pick one code and everyone enters the same one to share live data.</div>
